@@ -1,5 +1,18 @@
 <!DOCTYPE html>
 <html>
+
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?c74a5ae9f06c8c016264cc788439cf68";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+
 <head>
   <meta charset="utf-8">
   
@@ -13,7 +26,7 @@
 <meta property="og:site_name" content="damotiansheng的博客">
 <meta property="og:description" content="目的: 利用hexo将个人博客搭建到github上参考的相关文章">
 <meta property="og:image" content="https://damotiansheng.github.io/photos/damotiansheng.png">
-<meta property="og:updated_time" content="2016-10-24T03:15:07.459Z">
+<meta property="og:updated_time" content="2016-10-24T03:30:07.063Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="搭建github博客">
 <meta name="twitter:description" content="目的: 利用hexo将个人博客搭建到github上参考的相关文章">
@@ -149,113 +162,68 @@
 </nav>
 
       <div class="body-wrap">
-        <article id="post-搭建github博客" class="article article-type-post" itemscope itemprop="blogPost">
+        <article id="<%= post.layout %>-<%= post.slug %>" class="article article-type-<%= post.layout %>" itemscope itemprop="blogPost">
   <div class="article-inner">
-    
+    <% if (theme.fancybox){ %>
       <input type="hidden" class="isFancy" />
-    
-    
+    <% } %>
+    <% if (post.link || post.title){ %>
       <header class="article-header">
-        
-  
-    <h1 class="article-title" itemprop="name">
-      搭建github博客
-    </h1>
-  
-
+        <%- partial('post/title', {class_name: 'article-title'}) %>
       </header>
-    
+    <% } %>
     <div class="article-entry" itemprop="articleBody">
-      
-        <p><img src="https://damotiansheng.github.io/photos/damotiansheng.png" alt="Alt text"></p>
-<h3 id="目的-利用hexo将个人博客搭建到github上"><a href="#目的-利用hexo将个人博客搭建到github上" class="headerlink" title="目的: 利用hexo将个人博客搭建到github上"></a>目的: 利用hexo将个人博客搭建到github上</h3><h3 id="参考的相关文章"><a href="#参考的相关文章" class="headerlink" title="参考的相关文章"></a><a href="http://blog.netpi.me/%E5%AE%9E%E7%94%A8/hexo/" target="_blank" rel="external">参考的相关文章</a></h3><a id="more"></a>
-<h3 id="1、下载node-v4-6-0-linux-x64-tar-xz"><a href="#1、下载node-v4-6-0-linux-x64-tar-xz" class="headerlink" title="1、下载node-v4.6.0-linux-x64.tar.xz"></a>1、下载node-v4.6.0-linux-x64.tar.xz</h3><p>该压缩包中包含了编译好的hexo,npm,node可执行文件，可以直接使用</p>
-<h3 id="2、将hexo可执行文件路径添加到PATH中"><a href="#2、将hexo可执行文件路径添加到PATH中" class="headerlink" title="2、将hexo可执行文件路径添加到PATH中"></a>2、将hexo可执行文件路径添加到PATH中</h3><h3 id="3、初始化"><a href="#3、初始化" class="headerlink" title="3、初始化"></a>3、初始化</h3><p>新建你要存放博客内容的目录，cd到该目录，执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$hexo</span> init</div></pre></td></tr></table></figure></p>
-<h3 id="4、生成静态页面"><a href="#4、生成静态页面" class="headerlink" title="4、生成静态页面"></a>4、生成静态页面</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$hexo</span> generate</div></pre></td></tr></table></figure>
-<h3 id="5、本地启动"><a href="#5、本地启动" class="headerlink" title="5、本地启动"></a>5、本地启动</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$hexo</span> server</div></pre></td></tr></table></figure>
-<h3 id="６、浏览器访问"><a href="#６、浏览器访问" class="headerlink" title="６、浏览器访问"></a>６、浏览器访问</h3><p>执行完hexo server之后，浏览器输入<a href="http://localhost:4000/查看页面效果" target="_blank" rel="external">http://localhost:4000/查看页面效果</a></p>
-<h3 id="７、部署博客到github上去"><a href="#７、部署博客到github上去" class="headerlink" title="７、部署博客到github上去"></a>７、部署博客到github上去</h3><h4 id="7-1-新建github仓库，命名规则：你的github账号-github-io"><a href="#7-1-新建github仓库，命名规则：你的github账号-github-io" class="headerlink" title="7.1 新建github仓库，命名规则：你的github账号.github.io"></a>7.1 新建github仓库，命名规则：你的github账号.github.io</h4><h4 id="7-2-修改-config-yml"><a href="#7-2-修改-config-yml" class="headerlink" title="7.2 修改_config.yml"></a>7.2 修改_config.yml</h4><p>到该文件末尾，添加内容如下：<br>deploy:<br>    type: git<br>    repo: 刚刚创建的github仓库地址.git<br>    branch: master<br>注意：type,repo,branch后面有一个空格</p>
-<h4 id="7-3-部署到github上"><a href="#7-3-部署到github上" class="headerlink" title="7.3 部署到github上"></a>7.3 部署到github上</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$hexo</span> clean</div><div class="line"><span class="variable">$hexo</span> g</div><div class="line"><span class="variable">$hexo</span> d</div></pre></td></tr></table></figure>
-<h4 id="7-4-浏览器访问"><a href="#7-4-浏览器访问" class="headerlink" title="7.4 浏览器访问"></a>7.4 浏览器访问</h4><p>输入<a href="https://你的github账号.github.io即可访问你的博客了。" target="_blank" rel="external">https://你的github账号.github.io即可访问你的博客了。</a></p>
-<h3 id="8、hexo命令"><a href="#8、hexo命令" class="headerlink" title="8、hexo命令"></a>8、hexo命令</h3><h4 id="8-1-简写"><a href="#8-1-简写" class="headerlink" title="8.1 简写"></a>8.1 简写</h4><blockquote>
-<ul>
-<li>hexo n == hexo new</li>
-<li>hexo g == hexo generate</li>
-<li>hexo s == hexo server</li>
-<li>hexo d == hexo deploy</li>
-</ul>
-</blockquote>
-<h4 id="8-2-新建文章"><a href="#8-2-新建文章" class="headerlink" title="8.2 新建文章"></a>8.2 新建文章</h4><blockquote>
-<ul>
-<li>执行hexo new “标题”命令后会在_posts目录会生成文件标题.md，编辑该文件就是编辑该文章</li>
-</ul>
-</blockquote>
-<h4 id="8-3-hexo部署"><a href="#8-3-hexo部署" class="headerlink" title="8.3 hexo部署"></a>8.3 hexo部署</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$hexo</span> g</div><div class="line"><span class="variable">$hexo</span> d</div></pre></td></tr></table></figure>
-<h3 id="9、添加评论和头像"><a href="#9、添加评论和头像" class="headerlink" title="9、添加评论和头像"></a>9、添加评论和头像</h3><h4 id="9-1-添加评论"><a href="#9-1-添加评论" class="headerlink" title="9.1 添加评论"></a>9.1 添加评论</h4><blockquote>
-<ul>
-<li>到<a href="http://duoshuo.com/create-site/" target="_blank" rel="external">多说</a>申请站点</li>
-<li>修改theme-yilia下的_config.yml文件，修改为：duoshuo: 站点名称</li>
-<li>重新生成并部署即可</li>
-<li>如果不行，请参考<a href="http://dev.duoshuo.com/threads/541d3b2b40b5abcd2e4df0e9" target="_blank" rel="external">Hexo使用多说教程</a></li>
-</ul>
-</blockquote>
-<h4 id="9-2-添加头像"><a href="#9-2-添加头像" class="headerlink" title="9.2 添加头像"></a>9.2 添加头像</h4><blockquote>
-<ul>
-<li>在主目录下的source文件夹下(与_posts同目录)新建photos目录，并将xxx.png放到该目录</li>
-<li>修改theme-yilia下的_config.yml文件，修改为：avatar: /photos/xxx.png</li>
-<li>重新生成并部署即可</li>
-</ul>
-</blockquote>
-
-      
+      <% if (post.excerpt && index){ %>
+        <%- post.excerpt %>
+        <p class="article-more-link">
+          <a class="article-more-a" <% if (!theme.excerpt_link){ %>class="hidden"<% } %> href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %> >></a>
+        </p>
+      <% } else { %>
+        <%- post.content %>
+      <% } %>
     </div>
     <div class="article-info article-info-index">
-      
-      <a href="/2016/10/14/搭建github博客/" class="archive-article-date">
-  	<time datetime="2016-10-14T10:42:33.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-14</time>
-</a>
-      
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/搭建github博客/">搭建github博客</a></li></ul>
-	</div>
-
-      
-
+      <%if(post.top){%>
+        <div class="article-pop-out tagcloud">
+          <a class="">置顶</a>
+        </div>
+      <% } %>
+      <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
+      <%- partial('post/tag') %>
+      <%- partial('post/category') %>
       <div class="clearfix"></div>
     </div>
   </div>
 </article>
+<% if (!index){ %>
+  <%- partial('post/nav') %>
+<% } %>
 
-  
-<nav id="article-nav">
-  
-    <a href="/2016/10/22/fastdfs文件系统搭建/" id="article-nav-newer" class="article-nav-link-wrap">
-      <i class="icon-circle-left"></i>
-      <div class="article-nav-title">
-        
-          fastdfs文件系统搭建
-        
-      </div>
-    </a>
-  
-  
-</nav>
+<% if (!index && theme.share_jia){ %>
+<%- partial('post/share_jia') %>
+<% } %>
 
+<% if (!index && theme.share_addthis){ %>
+<%- partial('post/share_addthis') %>
+<% } %>
 
-
-
-
-
+<% if (!index && theme.duoshuo && post.comments){ %>
+<%- partial('post/duoshuo', {
+    key: post.slug,
+    title: post.title,
+    url: config.url+url_for(post.path)
+  }) %>
+<% } %>
 
 
-<div class="duoshuo">
-	<!-- 多说评论框 start -->
-	<div class="ds-thread" data-thread-key="搭建github博客" data-title="搭建github博客" data-url="http://damotiansheng.github.io/2016/10/14/搭建github博客/"></div>
-	<!-- 多说评论框 end -->
-	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-	<script type="text/javascript">
-	var duoshuoQuery = {short_name:"dmts"};
+<% if (!index && post.comments && config.duoshuo_shortname){ %>
+  <section id="comments">
+<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="<%= post.layout %>-<%= post.slug %>" data-title="<%= post.title %>" data-url="<%= page.permalink %>"></div>
+<!-- 多说评论框 end -->
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+var duoshuoQuery = {short_name:"damotiansheng"};
 	(function() {
 		var ds = document.createElement('script');
 		ds.type = 'text/javascript';ds.async = true;
@@ -265,13 +233,9 @@
 		 || document.getElementsByTagName('body')[0]).appendChild(ds);
 	})();
 	</script>
-	<!-- 多说公共JS代码 end -->
-</div>
-
-
-
-
-
+<!-- 多说公共JS代码 end -->
+ </section>
+  <% } %>
 
 
 
