@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>fastdfs文件系统搭建 | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs文件系统搭建">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/10/22/fastdfs文件系统搭建/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）">
+<meta property="og:updated_time" content="2016-10-24T03:15:07.459Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fastdfs文件系统搭建">
+<meta name="twitter:description" content="ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="http://weibo.com/u/1877550080" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="http://weibo.com/u/1877550080" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-fastdfs文件系统搭建" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      fastdfs文件系统搭建
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="ubantu14-04-x64下搭建FastDFS分布式存储环境（使用Nginx模块）"><a href="#ubantu14-04-x64下搭建FastDFS分布式存储环境（使用Nginx模块）" class="headerlink" title="ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）"></a>ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）</h2><a id="more"></a>
+<h3 id="1-软件准备"><a href="#1-软件准备" class="headerlink" title="1. 软件准备"></a>1. 软件准备</h3><h4 id="1-1-从happyfish100下载最新的fastdfs（当前为v5-08）、libfastcommon、fastdfs-nginx-module；"><a href="#1-1-从happyfish100下载最新的fastdfs（当前为v5-08）、libfastcommon、fastdfs-nginx-module；" class="headerlink" title="1.1 从happyfish100下载最新的fastdfs（当前为v5.08）、libfastcommon、fastdfs-nginx-module；"></a>1.1 从<a href="https://github.com/happyfish100" target="_blank" rel="external">happyfish100</a>下载最新的fastdfs（当前为v5.08）、libfastcommon、fastdfs-nginx-module；</h4><h4 id="1-2-从nginx官网下载nginx-我下载的版本为nginx-1-10-2-tar-gz"><a href="#1-2-从nginx官网下载nginx-我下载的版本为nginx-1-10-2-tar-gz" class="headerlink" title="1.2 从nginx官网下载nginx,我下载的版本为nginx-1.10.2.tar.gz"></a>1.2 从nginx官网下载nginx,我下载的版本为nginx-1.10.2.tar.gz</h4><h3 id="2-安装libfastcommon"><a href="#2-安装libfastcommon" class="headerlink" title="2. 安装libfastcommon"></a>2. 安装libfastcommon</h3><h4 id="2-1-安装"><a href="#2-1-安装" class="headerlink" title="2.1 安装"></a>2.1 安装</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#./makesh</span></div><div class="line"><span class="comment">#./make.sh install</span></div></pre></td></tr></table></figure>
+<h4 id="2-2-配置"><a href="#2-2-配置" class="headerlink" title="2.2 配置"></a>2.2 配置</h4><p>但是FastDFS主程序设置的lib目录是/usr/local/lib<br>所以需要创建软链接.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">ln <span class="_">-s</span> /usr/lib64/libfastcommon.so /usr/<span class="built_in">local</span>/lib/libfastcommon.so</div><div class="line">ln <span class="_">-s</span> /usr/lib64/libfastcommon.so /usr/lib/libfastcommon.so</div><div class="line">ln <span class="_">-s</span> /usr/lib64/libfdfsclient.so /usr/<span class="built_in">local</span>/lib/libfdfsclient.so</div><div class="line">ln <span class="_">-s</span> /usr/lib64/libfdfsclient.so /usr/lib/libfdfsclient.so</div></pre></td></tr></table></figure></p>
+<h3 id="3-安装fastdfs主程序"><a href="#3-安装fastdfs主程序" class="headerlink" title="3. 安装fastdfs主程序"></a>3. 安装fastdfs主程序</h3><h4 id="3-1-安装"><a href="#3-1-安装" class="headerlink" title="3.1  安装"></a>3.1  安装</h4><p>进入fastdfs主目录，依次执行：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">./make.sh </div><div class="line">./make.sh install</div></pre></td></tr></table></figure></p>
+<p>执行完毕后，可执行文件在/usr/bin/下以fdfs开头，ll /usr/bin/fdfs<em>，会看到一些可执行程序，如fdfs_upload_file等；<br>在/etc/fdfs/目录下也有一些配置文件，如：storage.conf.sample等；<br>执行： cp fastdfs/conf/</em> /etc/fdfs，即将conf目录下的所有文件复制到/etc/fdfs目录下</p>
+<h4 id="3-2-配置"><a href="#3-2-配置" class="headerlink" title="3.2 配置"></a>3.2 配置</h4><p>在fastdfs同级目录，新建目录storage_base_path，client_base_path，mod_fastdfs_base_path，store_path0，tracker_base_path<br>修改/etc/fdfs/tracker.conf(若没有，则cp /etc/fdfs/tracker.conf.sample /etc/fdfs/tracker.conf)<br>将base_path的值设置为tracker_base_path目录，如：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">vim /etc/fdfs/tracker.conf</div><div class="line">base_path=/home/hyp/Desktop/opensource/tracker_base_path</div><div class="line">http.server_port=8080</div><div class="line"></div><div class="line">vim /etc/fdfs/storage.conf</div><div class="line">group_name=group1</div><div class="line">base_path=/home/hyp/Desktop/opensource/storage_base_path</div><div class="line">store_path0=/home/hyp/Desktop/opensource/storage_base_path</div><div class="line">tracker_server=172.16.55.156:22122</div><div class="line">http.server_port=8080</div><div class="line"></div><div class="line"></div><div class="line">vim /etc/fdfs/client.conf</div><div class="line">base_path=/home/hyp/Desktop/opensource/client_base_path</div><div class="line">tracker_server=172.16.55.156:22122</div></pre></td></tr></table></figure></p>
+<h4 id="3-3-测试"><a href="#3-3-测试" class="headerlink" title="3.3 测试"></a>3.3 测试</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">which</span> fdfs_storaged </div><div class="line">/usr/bin/fdfs_storaged</div><div class="line"></div><div class="line">fdfs_trackerd /etc/fdfs/tracker.conf restart</div><div class="line">netstat -antp | grep trackerd</div><div class="line"></div><div class="line">fdfs_storaged /etc/fdfs/storage.conf restart</div><div class="line">netstat -antp | grep storage</div><div class="line"></div><div class="line">ps -ef|grep fdfs</div><div class="line"></div><div class="line">fdfs_upload_file client.conf ~/Desktop/fork.c</div><div class="line">group1/M00/00/00/rBA3nFgJeMCAUOjoAAAAxxbGNXU56061.c</div><div class="line">fdfs_upload_file client.conf ~/Desktop/kenan1.jpg </div><div class="line">group1/M00/00/00/rBA3nFgJxfKABNobAAITVP28J6s210.jpg</div><div class="line"></div><div class="line">终止命令：</div><div class="line">killall fdfs_storaged </div><div class="line">killall fdfs_trackerd</div></pre></td></tr></table></figure>
+<h3 id="4-安装fastdfs-nginx-module"><a href="#4-安装fastdfs-nginx-module" class="headerlink" title="4. 安装fastdfs-nginx-module"></a>4. 安装fastdfs-nginx-module</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">修改fastdfs-nginx-module的config文件</div><div class="line">原来的内容是</div><div class="line">CORE_INCS=<span class="string">"<span class="variable">$CORE_INCS</span> /usr/local/include/fastdfs /usr/local/include/fastcommon/"</span></div><div class="line"></div><div class="line">vim /home/nginx/fastdfs-nginx-module/src/config,修改为</div><div class="line">CORE_INCS=<span class="string">"<span class="variable">$CORE_INCS</span> /usr/include/fastdfs /usr/include/fastcommon"</span></div><div class="line"></div><div class="line">注：貌似github上的fastdfs-nginx-module无需修改</div></pre></td></tr></table></figure>
+<h3 id="5-安装nginx并运行"><a href="#5-安装nginx并运行" class="headerlink" title="5. 安装nginx并运行"></a>5. 安装nginx并运行</h3><h4 id="5-1-解压nginx-1-10-2，并执行："><a href="#5-1-解压nginx-1-10-2，并执行：" class="headerlink" title="5.1 解压nginx-1.10.2，并执行："></a>5.1 解压nginx-1.10.2，并执行：</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">./configure --prefix=/usr/<span class="built_in">local</span>/nginx --add-module=/home/hyp/Desktop/opensource/fastdfs-nginx-module/src</div><div class="line">make</div><div class="line">make install</div></pre></td></tr></table></figure>
+<h4 id="5-2-配置"><a href="#5-2-配置" class="headerlink" title="5.2 配置"></a>5.2 配置</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">cp fastdfs-nginx-module/src/mod_fastdfs.conf /etc/fdfs/</div><div class="line"></div><div class="line">vim /usr/<span class="built_in">local</span>/nginx/conf/nginx.conf</div><div class="line">将server字段的listen字段修改为8080</div><div class="line">并添加：</div><div class="line">location /group1/M00 &#123;</div><div class="line">            root /home/hyp/Desktop/opensource/storage_base_path/data;</div><div class="line">            ngx_fastdfs_module;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">注：/home/hyp/Desktop/opensource/storage_base_path/data该目录是指向真正存储文件的地方</div><div class="line"></div><div class="line">修改fastdfs的nginx模块的配置文件mod_fastdfs.conf:</div><div class="line">vim /etc/fdfs/mod_fastdfs.conf</div><div class="line">base_path=/home/hyp/Desktop/opensource/mod_fastdfs_base_path      <span class="comment">#保存日志目录</span></div><div class="line">tracker_server=172.16.55.156:22122    <span class="comment">#tracker 服务器的 IP 地址以及端口号</span></div><div class="line">storage_server_port=23000            <span class="comment">#storage 服务器的端口号</span></div><div class="line">group_name=group1                    <span class="comment">#当前服务器的 group 名</span></div><div class="line">url_have_group_name = <span class="literal">true</span>           <span class="comment">#文件 url 中是否有 group 名</span></div><div class="line">store_path_count=1                   <span class="comment">#存储路径个数，需要和 store_path 个数匹配</span></div><div class="line">store_path0=/home/hyp/Desktop/opensource/mod_fastdfs_base_path    <span class="comment">#存储路径</span></div><div class="line">http.need_find_content_type=<span class="literal">true</span>     <span class="comment"># 从文件 扩展 名查 找 文件 类型 （ nginx 时 为true）,好像没有该字段</span></div><div class="line">group_count = 1                      <span class="comment">#设置组的个数</span></div><div class="line"></div><div class="line">然后在末尾添加分组信息，目前只有一个分组，就只写一个</div><div class="line">[group1]</div><div class="line">group_name=group1</div><div class="line">storage_server_port=23000</div><div class="line">store_path_count=1</div><div class="line">store_path0=/home/hyp/Desktop/opensource/storage_base_path</div><div class="line"></div><div class="line">建立M00至存储目录的符号连接</div><div class="line">ln <span class="_">-s</span> /home/hyp/Desktop/opensource/storage_base_path/data /home/hyp/Desktop/opensource/storage_base_path/M00 （好像删除也可以，因为上面</div><div class="line">/group1/M00的root已经指向data了）</div></pre></td></tr></table></figure>
+<h4 id="5-3-运行"><a href="#5-3-运行" class="headerlink" title="5.3 运行"></a>5.3 运行</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">fdfs_trackerd /etc/fdfs/tracker.conf restart</div><div class="line">fdfs_storaged /etc/fdfs/storage.conf restart</div><div class="line">fdfs_upload_file /etc/fdfs/client.conf ~/Desktop/kenan.jpg </div><div class="line">group1/M00/00/00/rBA3nFgJuvmAHHJ0AAENmFEdiOY703.jpg</div><div class="line">到/usr/<span class="built_in">local</span>/nginx/sbin目录，执行: ./nginx</div><div class="line">./nginx</div><div class="line">ngx_http_fastdfs_set pid=22882</div><div class="line"></div><div class="line">lsof -i:8080</div><div class="line">COMMAND   PID   USER   FD   TYPE DEVICE SIZE/OFF NODE NAME</div><div class="line">nginx   22883   root    6u  IPv4 860115      0t0  TCP *:http-alt (LISTEN)</div><div class="line">nginx   22884 nobody    6u  IPv4 860115      0t0  TCP *:http-alt (LISTEN)</div><div class="line"></div><div class="line">输入http://localhost:8080/即可显示首页</div><div class="line">输入http://localhost:8080/group1/M00/00/00/rBA3nFgJuvmAHHJ0AAENmFEdiOY703.jpg即可显示kenan.jpg图片了</div></pre></td></tr></table></figure>
+<h3 id="6-遇到的问题"><a href="#6-遇到的问题" class="headerlink" title="6. 遇到的问题"></a>6. 遇到的问题</h3><h4 id="6-1-官网下载最新版本后，我下载的为nginx-1-10-2-tar-gz，编译运行"><a href="#6-1-官网下载最新版本后，我下载的为nginx-1-10-2-tar-gz，编译运行" class="headerlink" title="6.1 官网下载最新版本后，我下载的为nginx-1.10.2.tar.gz，编译运行"></a>6.1 官网下载最新版本后，我下载的为nginx-1.10.2.tar.gz，编译运行</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">ps -aux|grep nginx</div><div class="line">出现：</div><div class="line">root      7421  0.0  0.0  28588   564 ?        Ss   09:42   0:00 nginx: master process ./nginx</div><div class="line">nobody    7422  0.0  0.0  29012  2552 ?        S    09:42   0:00 nginx: worker process</div></pre></td></tr></table></figure>
+<p>但是在我ubantu12.04 x64的笔记本上只出现了一个进程，怪了，在ubantu12.04上，添加模块–add-module=/home/hyp/Desktop/opensource/fastdfs-nginx-module/src<br>后，也只有一个进程了，且此时浏览器访问<a href="http://localhost" target="_blank" rel="external">localhost</a>时，总是无法显示，浏览器总在转圈，可能原因是配置文件中的http.server_port端口没有配<br>置好，端口需要配置与nginx中监听的端口一致，或者是mod_fastdfs.conf文件没有配置好，如末尾没有添加分组信息，此问题困扰了两天；</p>
+<h4 id="6-2-有时执行-fdfs-storaged-storage-conf"><a href="#6-2-有时执行-fdfs-storaged-storage-conf" class="headerlink" title="6.2 有时执行: fdfs_storaged storage.conf"></a>6.2 有时执行: fdfs_storaged storage.conf</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">[2016-10-21 10:30:12] ERROR - file: shared_func.c, line: 968, /storage.conf is not a regular file</div><div class="line">root@hyp-HP-Pro-3340-MT:/etc/fdfs<span class="comment"># [2016-10-21 10:30:12] ERROR - file: storage_func.c, line: 1076, load conf file "storage.conf" fail, ret code: 22</span></div><div class="line">[2016-10-21 10:30:12] CRIT - <span class="built_in">exit</span> abnormally!</div><div class="line"></div><div class="line">^C</div><div class="line">[2016-10-21 10:03:10] ERROR - file: shared_func.c, line: 968, /./storage.conf is not a regular file</div><div class="line">[2016-10-21 10:03:10] ERROR - file: storage_func.c, line: 1076, load conf file <span class="string">"./storage.conf"</span> fail, ret code: 22</div><div class="line">[2016-10-21 10:03:10] CRIT - <span class="built_in">exit</span> abnormally!</div><div class="line"></div><div class="line">^C</div><div class="line"></div><div class="line">使用完整路径即可： fdfs_storaged /etc/fdfs/storage.conf</div></pre></td></tr></table></figure>
+<h3 id="7-参考来源："><a href="#7-参考来源：" class="headerlink" title="7. 参考来源："></a>7. 参考来源：</h3><p><a href="http://www.tuicool.com/articles/q6ZvUn" target="_blank" rel="external">http://www.tuicool.com/articles/q6ZvUn</a></p>
+<p><a href="http://blog.itpub.net/7734666/viewspace-1292485/" target="_blank" rel="external">http://www.tuicool.com/articles/q6ZvUn</a></p>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/10/22/fastdfs文件系统搭建/" class="archive-article-date">
+  	<time datetime="2016-10-21T16:54:20.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-21</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式文件系统/">分布式文件系统</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2016/10/24/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/10/14/搭建github博客/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">搭建github博客</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs文件系统搭建" data-title="fastdfs文件系统搭建" data-url="http://damotiansheng.github.io/2016/10/22/fastdfs文件系统搭建/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/fastdfs/" style="font-size: 10px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>
