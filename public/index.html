@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
-
+<!-- 
 <script type="text/javascript">
 var _hmt = _hmt || [];
 (function() {
   var hm = document.createElement("script");
-  hm.src = "//hm.baidu.com/hm.js?c74a5ae9f06c8c016264cc788439cf68";
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
   var s = document.getElementsByTagName("script")[0]; 
   s.parentNode.insertBefore(hm, s);
 })();
 </script>
 
-
+ -->
 
 <head>
+
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
@@ -35,7 +36,19 @@ var _hmt = _hmt || [];
     <link rel="icon" href="//favicon.png">
   
   <script src="/style.js"></script>
+<!--  
+ -->
   
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
 
 </head>
 
@@ -97,7 +110,7 @@ var _hmt = _hmt || [];
 				
 					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
 		        
-					<a class="weibo" target="_blank" href="http://weibo.com/u/1877550080" title="weibo">weibo</a>
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
 		        
 					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
 		        
@@ -144,7 +157,7 @@ var _hmt = _hmt || [];
 					
 						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
 			        
-						<a class="weibo" target="_blank" href="http://weibo.com/u/1877550080" title="weibo">weibo</a>
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
 			        
 						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
 			        
@@ -161,238 +174,175 @@ var _hmt = _hmt || [];
       <div class="body-wrap">
         
   
-    <article id="<%= post.layout %>-<%= post.slug %>" class="article article-type-<%= post.layout %>" itemscope itemprop="blogPost">
+    <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-inner">
-    <% if (theme.fancybox){ %>
+    
       <input type="hidden" class="isFancy" />
-    <% } %>
-    <% if (post.link || post.title){ %>
+    
+    
       <header class="article-header">
-        <%- partial('post/title', {class_name: 'article-title'}) %>
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/10/24/hello-world/">Hello World</a>
+    </h1>
+  
+
       </header>
-    <% } %>
+    
     <div class="article-entry" itemprop="articleBody">
-      <% if (post.excerpt && index){ %>
-        <%- post.excerpt %>
+      
+        <p>Welcome to <a href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues">GitHub</a>.<br>
         <p class="article-more-link">
-          <a class="article-more-a" <% if (!theme.excerpt_link){ %>class="hidden"<% } %> href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %> >></a>
+          <a class="article-more-a"  href="/2016/10/24/hello-world/#more">阅读全文 >></a>
         </p>
-      <% } else { %>
-        <%- post.content %>
-      <% } %>
+      
     </div>
     <div class="article-info article-info-index">
-      <%if(post.top){%>
-        <div class="article-pop-out tagcloud">
-          <a class="">置顶</a>
-        </div>
-      <% } %>
-      <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
-      <%- partial('post/tag') %>
-      <%- partial('post/category') %>
+      
+      <a href="/2016/10/24/hello-world/" class="archive-article-date">
+  	<time datetime="2016-10-24T03:15:07.459Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-24</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/github/">github</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/hexo/">hexo</a></li></ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+	<i class="icon-price-tags"></i>
+	<a class="article-category-link" href="/categories/hexo/">hexo</a>
+	</div>
+
+
       <div class="clearfix"></div>
     </div>
   </div>
 </article>
-<% if (!index){ %>
-  <%- partial('post/nav') %>
-<% } %>
-
-<% if (!index && theme.share_jia){ %>
-<%- partial('post/share_jia') %>
-<% } %>
-
-<% if (!index && theme.share_addthis){ %>
-<%- partial('post/share_addthis') %>
-<% } %>
-
-<% if (!index && theme.duoshuo && post.comments){ %>
-<%- partial('post/duoshuo', {
-    key: post.slug,
-    title: post.title,
-    url: config.url+url_for(post.path)
-  }) %>
-<% } %>
 
 
-<% if (!index && post.comments && config.duoshuo_shortname){ %>
-  <section id="comments">
-<!-- 多说评论框 start -->
-	<div class="ds-thread" data-thread-key="<%= post.layout %>-<%= post.slug %>" data-title="<%= post.title %>" data-url="<%= page.permalink %>"></div>
-<!-- 多说评论框 end -->
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
-var duoshuoQuery = {short_name:"damotiansheng"};
-	(function() {
-		var ds = document.createElement('script');
-		ds.type = 'text/javascript';ds.async = true;
-		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-		ds.charset = 'UTF-8';
-		(document.getElementsByTagName('head')[0] 
-		 || document.getElementsByTagName('body')[0]).appendChild(ds);
-	})();
-	</script>
-<!-- 多说公共JS代码 end -->
- </section>
-  <% } %>
+
+
+
+
+
+
+
+
 
 
 
 
   
-    <article id="<%= post.layout %>-<%= post.slug %>" class="article article-type-<%= post.layout %>" itemscope itemprop="blogPost">
+    <article id="post-fastdfs文件系统搭建" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-inner">
-    <% if (theme.fancybox){ %>
+    
       <input type="hidden" class="isFancy" />
-    <% } %>
-    <% if (post.link || post.title){ %>
+    
+    
       <header class="article-header">
-        <%- partial('post/title', {class_name: 'article-title'}) %>
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/10/22/fastdfs文件系统搭建/">fastdfs文件系统搭建</a>
+    </h1>
+  
+
       </header>
-    <% } %>
+    
     <div class="article-entry" itemprop="articleBody">
-      <% if (post.excerpt && index){ %>
-        <%- post.excerpt %>
+      
+        <h2 id="ubantu14-04-x64下搭建FastDFS分布式存储环境（使用Nginx模块）"><a href="#ubantu14-04-x64下搭建FastDFS分布式存储环境（使用Nginx模块）" class="headerlink" title="ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）"></a>ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）</h2>
         <p class="article-more-link">
-          <a class="article-more-a" <% if (!theme.excerpt_link){ %>class="hidden"<% } %> href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %> >></a>
+          <a class="article-more-a"  href="/2016/10/22/fastdfs文件系统搭建/#more">阅读全文 >></a>
         </p>
-      <% } else { %>
-        <%- post.content %>
-      <% } %>
+      
     </div>
     <div class="article-info article-info-index">
-      <%if(post.top){%>
-        <div class="article-pop-out tagcloud">
-          <a class="">置顶</a>
-        </div>
-      <% } %>
-      <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
-      <%- partial('post/tag') %>
-      <%- partial('post/category') %>
+      
+      <a href="/2016/10/22/fastdfs文件系统搭建/" class="archive-article-date">
+  	<time datetime="2016-10-21T16:54:20.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-21</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式文件系统/">分布式文件系统</a></li></ul>
+	</div>
+
+      
+
       <div class="clearfix"></div>
     </div>
   </div>
 </article>
-<% if (!index){ %>
-  <%- partial('post/nav') %>
-<% } %>
-
-<% if (!index && theme.share_jia){ %>
-<%- partial('post/share_jia') %>
-<% } %>
-
-<% if (!index && theme.share_addthis){ %>
-<%- partial('post/share_addthis') %>
-<% } %>
-
-<% if (!index && theme.duoshuo && post.comments){ %>
-<%- partial('post/duoshuo', {
-    key: post.slug,
-    title: post.title,
-    url: config.url+url_for(post.path)
-  }) %>
-<% } %>
 
 
-<% if (!index && post.comments && config.duoshuo_shortname){ %>
-  <section id="comments">
-<!-- 多说评论框 start -->
-	<div class="ds-thread" data-thread-key="<%= post.layout %>-<%= post.slug %>" data-title="<%= post.title %>" data-url="<%= page.permalink %>"></div>
-<!-- 多说评论框 end -->
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
-var duoshuoQuery = {short_name:"damotiansheng"};
-	(function() {
-		var ds = document.createElement('script');
-		ds.type = 'text/javascript';ds.async = true;
-		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-		ds.charset = 'UTF-8';
-		(document.getElementsByTagName('head')[0] 
-		 || document.getElementsByTagName('body')[0]).appendChild(ds);
-	})();
-	</script>
-<!-- 多说公共JS代码 end -->
- </section>
-  <% } %>
+
+
+
+
+
+
+
+
 
 
 
 
   
-    <article id="<%= post.layout %>-<%= post.slug %>" class="article article-type-<%= post.layout %>" itemscope itemprop="blogPost">
+    <article id="post-搭建github博客" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-inner">
-    <% if (theme.fancybox){ %>
+    
       <input type="hidden" class="isFancy" />
-    <% } %>
-    <% if (post.link || post.title){ %>
+    
+    
       <header class="article-header">
-        <%- partial('post/title', {class_name: 'article-title'}) %>
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/10/14/搭建github博客/">搭建github博客</a>
+    </h1>
+  
+
       </header>
-    <% } %>
+    
     <div class="article-entry" itemprop="articleBody">
-      <% if (post.excerpt && index){ %>
-        <%- post.excerpt %>
+      
+        <p><img src="https://damotiansheng.github.io/photos/damotiansheng.png" alt="Alt text"></p>
+<h3 id="目的-利用hexo将个人博客搭建到github上"><a href="#目的-利用hexo将个人博客搭建到github上" class="headerlink" title="目的: 利用hexo将个人博客搭建到github上"></a>目的: 利用hexo将个人博客搭建到github上</h3><h3 id="参考的相关文章"><a href="#参考的相关文章" class="headerlink" title="参考的相关文章"></a><a href="http://blog.netpi.me/%E5%AE%9E%E7%94%A8/hexo/">参考的相关文章</a></h3>
         <p class="article-more-link">
-          <a class="article-more-a" <% if (!theme.excerpt_link){ %>class="hidden"<% } %> href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %> >></a>
+          <a class="article-more-a"  href="/2016/10/14/搭建github博客/#more">阅读全文 >></a>
         </p>
-      <% } else { %>
-        <%- post.content %>
-      <% } %>
+      
     </div>
     <div class="article-info article-info-index">
-      <%if(post.top){%>
-        <div class="article-pop-out tagcloud">
-          <a class="">置顶</a>
-        </div>
-      <% } %>
-      <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
-      <%- partial('post/tag') %>
-      <%- partial('post/category') %>
+      
+      <a href="/2016/10/14/搭建github博客/" class="archive-article-date">
+  	<time datetime="2016-10-14T10:42:33.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-14</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/搭建github博客/">搭建github博客</a></li></ul>
+	</div>
+
+      
+
       <div class="clearfix"></div>
     </div>
   </div>
 </article>
-<% if (!index){ %>
-  <%- partial('post/nav') %>
-<% } %>
-
-<% if (!index && theme.share_jia){ %>
-<%- partial('post/share_jia') %>
-<% } %>
-
-<% if (!index && theme.share_addthis){ %>
-<%- partial('post/share_addthis') %>
-<% } %>
-
-<% if (!index && theme.duoshuo && post.comments){ %>
-<%- partial('post/duoshuo', {
-    key: post.slug,
-    title: post.title,
-    url: config.url+url_for(post.path)
-  }) %>
-<% } %>
 
 
-<% if (!index && post.comments && config.duoshuo_shortname){ %>
-  <section id="comments">
-<!-- 多说评论框 start -->
-	<div class="ds-thread" data-thread-key="<%= post.layout %>-<%= post.slug %>" data-title="<%= post.title %>" data-url="<%= page.permalink %>"></div>
-<!-- 多说评论框 end -->
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
-var duoshuoQuery = {short_name:"damotiansheng"};
-	(function() {
-		var ds = document.createElement('script');
-		ds.type = 'text/javascript';ds.async = true;
-		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-		ds.charset = 'UTF-8';
-		(document.getElementsByTagName('head')[0] 
-		 || document.getElementsByTagName('body')[0]).appendChild(ds);
-	})();
-	</script>
-<!-- 多说公共JS代码 end -->
- </section>
-  <% } %>
+
+
+
+
+
+
+
+
 
 
 
@@ -403,6 +353,8 @@ var duoshuoQuery = {short_name:"damotiansheng"};
 
       </div>
       <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
   <div class="outer">
     <div id="footer-info">
     	<div class="footer-left">
@@ -413,6 +365,9 @@ var duoshuoQuery = {short_name:"damotiansheng"};
       	</div>
     </div>
   </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
 </footer>
 
     </div>
