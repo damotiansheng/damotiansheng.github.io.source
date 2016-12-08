@@ -26,7 +26,7 @@ var _hmt = _hmt || [];
 <meta property="og:url" content="http://damotiansheng.github.io/2016/12/05/fastdfs之storage主流程/index.html">
 <meta property="og:site_name" content="damotiansheng的博客">
 <meta property="og:description" content="主要工作相关文章1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_">
-<meta property="og:updated_time" content="2016-12-04T09:28:51.202Z">
+<meta property="og:updated_time" content="2016-12-04T09:28:51.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="fastdfs之storage主流程">
 <meta name="twitter:description" content="主要工作相关文章1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_">
@@ -223,6 +223,15 @@ var _hmt = _hmt || [];
   
 <nav id="article-nav">
   
+    <a href="/2016/12/08/hello-world/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          Hello World
+        
+      </div>
+    </a>
+  
   
     <a href="/2016/12/04/fastdfs之超时事件的处理/" id="article-nav-older" class="article-nav-link-wrap">
       <div class="article-nav-title">fastdfs之超时事件的处理</div>
@@ -350,7 +359,7 @@ MathJax.Hub.Queue(function() {
     
     	<section class="tools-section tools-section-tag">
     			<div class="widget tagcloud" id="js-tagcloud">
-    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/test/" style="font-size: 10px;">test</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
     			</div>
     	</section>
     
