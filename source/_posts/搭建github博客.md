@@ -80,3 +80,6 @@ $hexo d
 >* 修改theme-yilia下的_config.yml文件，修改为：avatar: /photos/xxx.png
 >* 重新生成并部署即可
 
+### 10、注意
+>* 有时hexo new xxx文章后，发布后有乱码，此时删除该文章，然后直接vim新建，然后到博客主目录下执行hexo g -> hexo d，有乱码可能就是由于没有在主目录下执行命令，而在_posts目录下执行命令进行发布了。
+

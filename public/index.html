@@ -77,6 +77,8 @@ var _hmt = _hmt || [];
 			
 				<li><a href="/">主页</a></li>
 	        
+				<li><a href="/categories">分类</a></li>
+	        
 				<li><a href="/photos/damotiansheng.png">相册</a></li>
 	        
 			</ul>
@@ -148,6 +150,8 @@ var _hmt = _hmt || [];
 				
 					<li><a href="/">主页</a></li>
 		        
+					<li><a href="/categories">分类</a></li>
+		        
 					<li><a href="/photos/damotiansheng.png">相册</a></li>
 		        
 				</ul>
@@ -173,6 +177,405 @@ var _hmt = _hmt || [];
 
       <div class="body-wrap">
         
+  
+    <article id="post-fastdfs之storage主流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/05/fastdfs之storage主流程/">fastdfs之storage主流程</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="主要工作"><a href="#主要工作" class="headerlink" title="主要工作"></a>主要工作</h2><p><a href="http://blog.chinaunix.net/uid-20498361-id-3328762.html">相关文章</a><br>1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；<br>2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_sync_func等，还会创建一些IO读写线程，用于读写目录，默认一个目录有一个读线程和一个写线程，线程函数都为dio_thread_entrance函数；<br>3）主要处理过程：主线程往管道写入得到的连接的相关信息（其实是写入一个fast_task_info地址），工作线程会调用storage_recv_notify_read函数得到该地址，然后依据不同的状态进行不同的处理，具体见storage_recv_notify_read函数；<br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/12/05/fastdfs之storage主流程/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/05/fastdfs之storage主流程/" class="archive-article-date">
+  	<time datetime="2016-12-04T17:08:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-fastdfs之超时事件的处理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/04/fastdfs之超时事件的处理/">fastdfs之超时事件的处理</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>fastdfs有这样的一个需求，设置一个超时时间，时间到了，自动调用某个函数，其实现的思想有点像Timing wheel的思想，构造一个60（默认）个格子的循环队列，插入超时事件时，插入到(该事件超时时间-循环队列基准时间)%60的对应格子上去，每个格子是一个双向链表，接着采用epoll IO复用函数，1秒后，epoll超时返回，然后依据循环队列中的当前时间，遍历该循环队列，直到循环队列中的当前时间等于当前系统时间，遍历时，判断事件是否超时，将所有已经超时的事件提取出来（从循环队列中删除），构造成链表，接着遍历该链表，依次调用超时事件的回调函数，达到超时事件的处理；<br><a href="http://blog.csdn.net/solstice/article/details/6395098">Timing wheel1</a><br><a href="http://blog.csdn.net/mindfloating/article/details/8033340">Timing wheel2</a><br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/12/04/fastdfs之超时事件的处理/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之超时事件的处理/" class="archive-article-date">
+  	<time datetime="2016-12-04T14:52:34.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/超时事件/">超时事件</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-fastdfs之事件监听" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/04/fastdfs之事件监听/">fastdfs之事件监听</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>fastdfs需要监听某个fd的事件，当fd就绪时自动调用某个函数进行处理，其思想是将该事件的回调函数，fd保存到epoll_event结构体中，当该fd就绪时就可得到该结构体，从而调用该回调函数；<br><a href="http://blog.csdn.net/yusiguyuan/article/details/15027821">epoll机制</a><br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/12/04/fastdfs之事件监听/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之事件监听/" class="archive-article-date">
+  	<time datetime="2016-12-04T14:25:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/epoll/">epoll</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-fastdfs之tracker主流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/04/fastdfs之tracker主流程/">fastdfs之tracker主流程</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p><a href="http://blog.chinaunix.net/uid-20498361-id-3328763.html">相关文章1</a><br><a href="http://blog.csdn.net/makamus/article/details/13759545">相关文章2</a><br>主要思想是采用主线程监听并accept连接（代码中tracker_accept_loop函数可以依据全局变量g_accept_threads而开启多个子线程进行监听，默认只有一个主线程监听），得到fd,然后将该fd写入到某一个管道，而子线程（工作线程）（默认4个）监听到管道的另外一端，其处理函数为recv_notify_read，该函数读取管道得到该fd的值，再次将它加入到某个线程（不一定是当前线程）的监听事件中去，处理函数为client_sock_read，该函数当读完客户端完整的请求数据包时会调用tracker_deal_task函数进行处理，当需要进行写时会调用client_sock_write函数进行处理，这样主线程监听得到连接，交给子线程进行处理；<br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/12/04/fastdfs之tracker主流程/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之tracker主流程/" class="archive-article-date">
+  	<time datetime="2016-12-04T13:01:50.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-fastdfs连接池" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/12/04/fastdfs连接池/">fastdfs连接池</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="fastdfs连接池"><a href="#fastdfs连接池" class="headerlink" title="fastdfs连接池"></a>fastdfs连接池</h1><hr>
+<h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>为了提高连接速度，fastdfs使用到了连接池，并用hash数组来加速查找，key为ip_port, value为：ConnectionManager（见后面），当需要进行连接某个ip:port时，以该ip_port作为key，到hash数组中查找，得到value:ConnectionManager,该结构中保存了针对该ip:port的已建立连接的socket，第一次连接时，会调用conn_pool_connect_server函数建立连接，当需要关闭某个连接时，会调用conn_pool_close_connection_ex函数来将该连接放入连接池中或者直接关闭该连接，放入连接池中即会插入到hash数组中去，此外还会依据该连接的上次访问时间，如果很久没有访问该连接了，就会关闭该连接，见conn_pool_get_connection函数，通过hash数组+关闭连接时将该连接保存到hash数组中来实现连接池，提高连接速度；<br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/12/04/fastdfs连接池/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs连接池/" class="archive-article-date">
+  	<time datetime="2016-12-03T17:51:25.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-03</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/连接池/">连接池</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-多个线程监听同一个fd" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/11/28/多个线程监听同一个fd/">多个线程监听同一个fd</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="多个线程监听同一个fd"><a href="#多个线程监听同一个fd" class="headerlink" title="多个线程监听同一个fd"></a>多个线程监听同一个fd</h2><h3 id="测试环境"><a href="#测试环境" class="headerlink" title="测试环境"></a>测试环境</h3><p>ubantu 12.04 x64</p>
+<h3 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h3><p>多个线程监听同一fd,看看是否会出现问题，连接到来时，是否每个线程都会被唤醒，<br>还是只唤醒一个，每个线程被唤醒的次数是否会相等。<br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/11/28/多个线程监听同一个fd/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/11/28/多个线程监听同一个fd/" class="archive-article-date">
+  	<time datetime="2016-11-27T16:23:59.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-11-27</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/multi-pthread/">multi pthread</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+    <article id="post-fastdfs配置文件解析模块" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2016/11/07/fastdfs配置文件解析模块/">fastdfs配置文件解析模块</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h3 id="加载配置文件解析"><a href="#加载配置文件解析" class="headerlink" title="加载配置文件解析"></a>加载配置文件解析</h3><p>配置文件有： storage.conf,tracker.conf,mod_fastdfs.conf,http.conf等，配置文件中还可以用#include包含其他配置文件，<br>如#include http.conf。该配置文件解析模块就是读取这些配置文件，然后解析保存，方便得到其中的值。<br>如：<br>result=iniLoadFromFileEx(filename, &amp;iniContext, true)<br>pBasePath = iniGetStrValue(NULL, “base_path”, &amp;iniContext); //该函数就可以得到配置文件中base_path的值<br>
+        <p class="article-more-link">
+          <a class="article-more-a"  href="/2016/11/07/fastdfs配置文件解析模块/#more">阅读全文 >></a>
+        </p>
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/11/07/fastdfs配置文件解析模块/" class="archive-article-date">
+  	<time datetime="2016-11-06T19:11:20.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-11-06</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+	<div class="article-category tagcloud">
+	<i class="icon-price-tags"></i>
+	<a class="article-category-link" href="/categories/fastdfs/">fastdfs</a>
+	</div>
+
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   
     <article id="post-hello-world" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-inner">
@@ -436,7 +839,7 @@ MathJax.Hub.Queue(function() {
     
     	<section class="tools-section tools-section-tag">
     			<div class="widget tagcloud" id="js-tagcloud">
-    				<a href="/tags/fastdfs/" style="font-size: 10px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a>
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
     			</div>
     	</section>
     

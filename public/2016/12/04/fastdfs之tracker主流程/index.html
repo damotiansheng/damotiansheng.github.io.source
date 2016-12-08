@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+ -->
+
+<head>
+
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>fastdfs之tracker主流程 | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="思想相关文章1相关文章2主要思想是采用主线程监听并accept连接（代码中tracker_accept_loop函数可以依据全局变量g_accept_threads而开启多个子线程进行监听，默认只有一个主线程监听），得到fd,然后将该fd写入到某一个管道，而子线程（工作线程）（默认4个）监听到管道的另外一端，其处理函数为recv_notify_read，该函数读取管道得到该fd的值，再次将它加入到">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs之tracker主流程">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/12/04/fastdfs之tracker主流程/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="思想相关文章1相关文章2主要思想是采用主线程监听并accept连接（代码中tracker_accept_loop函数可以依据全局变量g_accept_threads而开启多个子线程进行监听，默认只有一个主线程监听），得到fd,然后将该fd写入到某一个管道，而子线程（工作线程）（默认4个）监听到管道的另外一端，其处理函数为recv_notify_read，该函数读取管道得到该fd的值，再次将它加入到">
+<meta property="og:updated_time" content="2016-12-04T06:01:17.070Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fastdfs之tracker主流程">
+<meta name="twitter:description" content="思想相关文章1相关文章2主要思想是采用主线程监听并accept连接（代码中tracker_accept_loop函数可以依据全局变量g_accept_threads而开启多个子线程进行监听，默认只有一个主线程监听），得到fd,然后将该fd写入到某一个管道，而子线程（工作线程）（默认4个）监听到管道的另外一端，其处理函数为recv_notify_read，该函数读取管道得到该fd的值，再次将它加入到">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+<!--  
+ -->
+  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-fastdfs之tracker主流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      fastdfs之tracker主流程
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p><a href="http://blog.chinaunix.net/uid-20498361-id-3328763.html" target="_blank" rel="external">相关文章1</a><br><a href="http://blog.csdn.net/makamus/article/details/13759545" target="_blank" rel="external">相关文章2</a><br>主要思想是采用主线程监听并accept连接（代码中tracker_accept_loop函数可以依据全局变量g_accept_threads而开启多个子线程进行监听，默认只有一个主线程监听），得到fd,然后将该fd写入到某一个管道，而子线程（工作线程）（默认4个）监听到管道的另外一端，其处理函数为recv_notify_read，该函数读取管道得到该fd的值，再次将它加入到某个线程（不一定是当前线程）的监听事件中去，处理函数为client_sock_read，该函数当读完客户端完整的请求数据包时会调用tracker_deal_task函数进行处理，当需要进行写时会调用client_sock_write函数进行处理，这样主线程监听得到连接，交给子线程进行处理；<br><a id="more"></a></p>
+<h2 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">相关数据结构</div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">nio_thread_data</span></span></div><div class="line">&#123;</div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ioevent_puller</span></span> ev_puller; <span class="comment">//IO multiplexing function: poll, kqueue </span></div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fast_timer</span></span> timer; <span class="comment">// time wheel </span></div><div class="line">	<span class="keyword">int</span> pipe_fds[<span class="number">2</span>]; <span class="comment">//to wake up current thread who owns current nio_thread_data</span></div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fast_task_info</span></span> *deleted_list;</div><div class="line">	ThreadLoopCallback thread_loop_callback;</div><div class="line">	void *arg;   <span class="comment">//extra argument pointer</span></div><div class="line">&#125;;</div><div class="line">每个工作线程对应一个该结构体，以实现one thread, one <span class="keyword">loop</span>,</div></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div><div class="line">297</div><div class="line">298</div><div class="line">299</div><div class="line">300</div><div class="line">301</div><div class="line">302</div><div class="line">303</div><div class="line">304</div><div class="line">305</div><div class="line">306</div><div class="line">307</div><div class="line">308</div><div class="line">309</div><div class="line">310</div><div class="line">311</div><div class="line">312</div><div class="line">313</div><div class="line">314</div><div class="line">315</div><div class="line">316</div><div class="line">317</div><div class="line">318</div><div class="line">319</div><div class="line">320</div><div class="line">321</div><div class="line">322</div><div class="line">323</div><div class="line">324</div><div class="line">325</div><div class="line">326</div><div class="line">327</div><div class="line">328</div><div class="line">329</div><div class="line">330</div><div class="line">331</div><div class="line">332</div><div class="line">333</div><div class="line">334</div><div class="line">335</div><div class="line">336</div><div class="line">337</div><div class="line">338</div><div class="line">339</div><div class="line">340</div><div class="line">341</div><div class="line">342</div><div class="line">343</div><div class="line">344</div><div class="line">345</div><div class="line">346</div><div class="line">347</div><div class="line">348</div><div class="line">349</div><div class="line">350</div><div class="line">351</div><div class="line">352</div><div class="line">353</div><div class="line">354</div><div class="line">355</div><div class="line">356</div><div class="line">357</div><div class="line">358</div><div class="line">359</div><div class="line">360</div><div class="line">361</div><div class="line">362</div><div class="line">363</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//fdfs_trackerd.c-&gt;main函数</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> *argv[])</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">char</span> *conf_filename;</div><div class="line">	<span class="keyword">int</span> result;</div><div class="line">	<span class="keyword">int</span> wait_count;</div><div class="line">	<span class="keyword">int</span> sock;</div><div class="line">	<span class="keyword">pthread_t</span> schedule_tid;</div><div class="line">	<span class="keyword">struct</span> sigaction act;</div><div class="line">	ScheduleEntry scheduleEntries[SCHEDULE_ENTRIES_COUNT]; <span class="comment">//保存需要定时执行的任务</span></div><div class="line">	ScheduleArray scheduleArray;</div><div class="line">	<span class="keyword">char</span> pidFilename[MAX_PATH_SIZE];</div><div class="line">	<span class="keyword">bool</span> stop;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (argc &lt; <span class="number">2</span>)</div><div class="line">	&#123;</div><div class="line">		usage(argv[<span class="number">0</span>]);</div><div class="line">		<span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	g_current_time = time(<span class="literal">NULL</span>);</div><div class="line">	g_up_time = g_current_time;</div><div class="line">	srand(g_up_time);</div><div class="line"></div><div class="line">	log_init2();</div><div class="line"></div><div class="line">	conf_filename = argv[<span class="number">1</span>];</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=get_base_path_from_conf_file(conf_filename,</div><div class="line">		g_fdfs_base_path, <span class="keyword">sizeof</span>(g_fdfs_base_path))) != <span class="number">0</span>)  <span class="comment">//从配置文件中得到base path</span></div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="built_in">snprintf</span>(pidFilename, <span class="keyword">sizeof</span>(pidFilename),</div><div class="line">		<span class="string">"%s/data/fdfs_trackerd.pid"</span>, g_fdfs_base_path);</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=process_action(pidFilename, argv[<span class="number">2</span>], &amp;stop)) != <span class="number">0</span>) <span class="comment">//处理命令： fdfs_trackerd restart/stop/start</span></div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> (result == EINVAL)</div><div class="line">		&#123;</div><div class="line">			usage(argv[<span class="number">0</span>]);</div><div class="line">		&#125;</div><div class="line">		</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (stop)</div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">	&#125;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(DEBUG_FLAG) &amp;&amp; defined(OS_LINUX)</span></div><div class="line">	<span class="keyword">if</span> (getExeAbsoluteFilename(argv[<span class="number">0</span>], g_exe_name, \</div><div class="line">		<span class="keyword">sizeof</span>(g_exe_name)) == <span class="literal">NULL</span>)   <span class="comment">//得到可执行文件的绝对路径，保存到g_exe_name</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> errno != <span class="number">0</span> ? errno : ENOENT;</div><div class="line">	&#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">	<span class="built_in">memset</span>(bind_addr, <span class="number">0</span>, <span class="keyword">sizeof</span>(bind_addr));</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=tracker_load_from_conf_file(conf_filename, \</div><div class="line">			bind_addr, <span class="keyword">sizeof</span>(bind_addr))) != <span class="number">0</span>)       <span class="comment">//得到监听的地址</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    </div><div class="line">	<span class="comment">//	load last status of tracker last time from file: base_path/data/.tracker_status</span></div><div class="line">	<span class="keyword">if</span> ((result=tracker_load_status_from_file(&amp;g_tracker_last_status)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// init the global variable: g_base64_context</span></div><div class="line">	base64_init_ex(&amp;g_base64_context, <span class="number">0</span>, <span class="string">'-'</span>, <span class="string">'_'</span>, <span class="string">'.'</span>);</div><div class="line"></div><div class="line">	<span class="comment">// set a rand num</span></div><div class="line">	<span class="keyword">if</span> ((result=set_rand_seed()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"set_rand_seed fail, program exit!"</span>, __LINE__);</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=tracker_mem_init()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	sock = socketServer(bind_addr, g_server_port, &amp;result);</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (sock &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// set send/recv timeout and keepalive parameter</span></div><div class="line">	<span class="keyword">if</span> ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	daemon_init(<span class="literal">false</span>); <span class="comment">//后台进程</span></div><div class="line">	umask(<span class="number">0</span>);</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=write_to_pid_file(pidFilename)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// create work thread: work_thread_entrance func</span></div><div class="line">    <span class="comment">// every thread has its event loop</span></div><div class="line">	<span class="keyword">if</span> ((result=tracker_service_init()) != <span class="number">0</span>)  <span class="comment">//创建工作线程，每个工作线程对应一个nio_thread_data结构体</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	</div><div class="line">	<span class="built_in">memset</span>(&amp;act, <span class="number">0</span>, <span class="keyword">sizeof</span>(act));</div><div class="line">	sigemptyset(&amp;act.sa_mask);</div><div class="line">   </div><div class="line">	act.sa_handler = sigUsrHandler;</div><div class="line">	<span class="keyword">if</span>(sigaction(SIGUSR1, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(SIGUSR2, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	act.sa_handler = sigHupHandler;</div><div class="line">	<span class="keyword">if</span>(sigaction(SIGHUP, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	act.sa_handler = SIG_IGN;</div><div class="line">	<span class="keyword">if</span>(sigaction(SIGPIPE, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	act.sa_handler = sigQuitHandler;  <span class="comment">// send FDFS_PROTO_CMD_QUIT command when caught SIGINT,SIGTERM,SIGQUIT</span></div><div class="line">	<span class="keyword">if</span>(sigaction(SIGINT, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(SIGTERM, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(SIGQUIT, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> defined(DEBUG_FLAG)</span></div><div class="line"><span class="comment">/*</span></div><div class="line">#if defined(OS_LINUX)</div><div class="line">	memset(&amp;act, 0, sizeof(act));</div><div class="line">	sigemptyset(&amp;act.sa_mask);</div><div class="line">        act.sa_sigaction = sigSegvHandler;</div><div class="line">        act.sa_flags = SA_SIGINFO;</div><div class="line">        if (sigaction(SIGSEGV, &amp;act, NULL) &lt; 0 || \</div><div class="line">        	sigaction(SIGABRT, &amp;act, NULL) &lt; 0)</div><div class="line">	&#123;</div><div class="line">		logCrit("file: "__FILE__", line: %d, " \</div><div class="line">			"call sigaction fail, errno: %d, error info: %s", \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit("exit abnormally!\n");</div><div class="line">		return errno;</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line">*/</div><div class="line"></div><div class="line">	<span class="built_in">memset</span>(&amp;act, <span class="number">0</span>, <span class="keyword">sizeof</span>(act));</div><div class="line">	sigemptyset(&amp;act.sa_mask);</div><div class="line">	act.sa_handler = sigDumpHandler; </div><div class="line">	<span class="keyword">if</span>(sigaction(SIGUSR1, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(SIGUSR2, &amp;act, <span class="literal">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> WITH_HTTPD</span></div><div class="line">	<span class="keyword">if</span> (!g_http_params.disabled)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> ((result=tracker_httpd_start(bind_addr)) != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"tracker_httpd_start fail, program exit!"</span>, \</div><div class="line">				__LINE__);</div><div class="line">			<span class="keyword">return</span> result;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=tracker_http_check_start()) != <span class="number">0</span>)   </div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"tracker_http_check_start fail, "</span> \</div><div class="line">			<span class="string">"program exit!"</span>, __LINE__);</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=set_run_by(g_run_by_group, g_run_by_user)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	scheduleArray.entries = scheduleEntries;</div><div class="line">	scheduleArray.count = <span class="number">0</span>;</div><div class="line">	<span class="built_in">memset</span>(scheduleEntries, <span class="number">0</span>, <span class="keyword">sizeof</span>(scheduleEntries));</div><div class="line"></div><div class="line">	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],</div><div class="line">		scheduleArray.count + <span class="number">1</span>, TIME_NONE, TIME_NONE, TIME_NONE,</div><div class="line">		g_sync_log_buff_interval, log_sync_func, &amp;g_log_context);</div><div class="line">	scheduleArray.count++;</div><div class="line"></div><div class="line">	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],</div><div class="line">		scheduleArray.count + <span class="number">1</span>, TIME_NONE, TIME_NONE, TIME_NONE,</div><div class="line">		g_check_active_interval, tracker_mem_check_alive, <span class="literal">NULL</span>);</div><div class="line">	scheduleArray.count++;</div><div class="line"></div><div class="line">	INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],</div><div class="line">		scheduleArray.count + <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>,</div><div class="line">		TRACKER_SYNC_STATUS_FILE_INTERVAL,</div><div class="line">		tracker_write_status_to_file, <span class="literal">NULL</span>);</div><div class="line">	scheduleArray.count++;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_rotate_error_log)</div><div class="line">	&#123;</div><div class="line">		INIT_SCHEDULE_ENTRY_EX(scheduleEntries[scheduleArray.count],</div><div class="line">			scheduleArray.count + <span class="number">1</span>, g_error_log_rotate_time,</div><div class="line">			<span class="number">24</span> * <span class="number">3600</span>, log_notify_rotate, &amp;g_log_context);</div><div class="line">		scheduleArray.count++;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (g_log_file_keep_days &gt; <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			log_set_keep_days(&amp;g_log_context, g_log_file_keep_days);</div><div class="line"></div><div class="line">			INIT_SCHEDULE_ENTRY(scheduleEntries[scheduleArray.count],</div><div class="line">				scheduleArray.count + <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">24</span> * <span class="number">3600</span>,</div><div class="line">				log_delete_old_files, &amp;g_log_context);</div><div class="line">			scheduleArray.count++;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// create a thread to execute some periodic task above, such as:log_sync_func,tracker_mem_check_alive</span></div><div class="line">    <span class="comment">// tracker_write_status_to_file and so on</span></div><div class="line">	<span class="keyword">if</span> ((result=sched_start(&amp;scheduleArray, &amp;schedule_tid, \</div><div class="line">		g_thread_stack_size, (<span class="keyword">bool</span> * <span class="keyword">volatile</span>)&amp;g_continue_flag)) != <span class="number">0</span>) <span class="comment">//创建调度线程，以定时执行上面的任务：log_sync_func，tracker_mem_check_alive等</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=tracker_relationship_init()) != <span class="number">0</span>) <span class="comment">//初始化主lead</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	log_set_cache(<span class="literal">true</span>); <span class="comment">//set g_log_context.log_to_cache to true</span></div><div class="line"></div><div class="line">	bTerminateFlag = <span class="literal">false</span>;</div><div class="line">	bAcceptEndFlag = <span class="literal">false</span>;</div><div class="line"></div><div class="line">	tracker_accept_loop(sock);  <span class="comment">// the sock is tracker server socket，主线程循环，得到连接，dispatch子线程处理</span></div><div class="line">	bAcceptEndFlag = <span class="literal">true</span>;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (g_schedule_flag)</div><div class="line">	&#123;</div><div class="line">		pthread_kill(schedule_tid, SIGINT);</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	tracker_terminate_threads(); </div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> WITH_HTTPD</span></div><div class="line">	<span class="keyword">if</span> (g_http_check_flag)</div><div class="line">	&#123;</div><div class="line">		tracker_http_check_stop();</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">while</span> (g_http_check_flag)</div><div class="line">	&#123;</div><div class="line">		usleep(<span class="number">50000</span>);</div><div class="line">	&#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line">	wait_count = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="comment">// g_schedule_flag is true means the schedule thread is not ended, see sched_thread_entrance</span></div><div class="line">	<span class="keyword">while</span> ((g_tracker_thread_count != <span class="number">0</span>) || g_schedule_flag)</div><div class="line">	&#123;</div><div class="line"></div><div class="line"><span class="comment">/*</span></div><div class="line">#if defined(DEBUG_FLAG) &amp;&amp; defined(OS_LINUX)</div><div class="line">		if (bSegmentFault)</div><div class="line">		&#123;</div><div class="line">			sleep(5);</div><div class="line">			break;</div><div class="line">		&#125;</div><div class="line">#endif</div><div class="line">*/</div><div class="line"></div><div class="line">		usleep(<span class="number">10000</span>);</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (++wait_count &gt; <span class="number">3000</span>)</div><div class="line">		&#123;</div><div class="line">			logWarning(<span class="string">"waiting timeout, exit!"</span>);</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	tracker_mem_destroy(); <span class="comment">// free the memory in g_groups and free lock allocated previously</span></div><div class="line">	tracker_service_destroy(); <span class="comment">// wait all child thread to exit</span></div><div class="line">	tracker_relationship_destroy(); <span class="comment">// do nothing</span></div><div class="line">	</div><div class="line">	logInfo(<span class="string">"exit normally.\n"</span>);</div><div class="line">	log_destroy(); <span class="comment">// destory the log system</span></div><div class="line">	</div><div class="line">	delete_pid_file(pidFilename);</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//初始化工作线程</span></div><div class="line"><span class="comment">// create work thread: work_thread_entrance func</span></div><div class="line"><span class="comment">// http://slucx.blog.chinaunix.net/uid-29504236-id-4556391.html</span></div><div class="line"><span class="comment">// http://slucx.blog.chinaunix.net/uid-29504236-id-4556487.html</span></div><div class="line"><span class="keyword">int</span> tracker_service_init()</div><div class="line">&#123;</div><div class="line"><span class="comment">#define ALLOC_CONNECTIONS_ONCE 1024</span></div><div class="line">	<span class="keyword">int</span> result;</div><div class="line">	<span class="keyword">int</span> bytes;</div><div class="line">    <span class="keyword">int</span> init_connections;</div><div class="line">	struct nio_thread_data *pThreadData;</div><div class="line">	struct nio_thread_data *pDataEnd;</div><div class="line">	pthread_t tid;</div><div class="line">	pthread_attr_t thread_attr;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=init_pthread_lock(&amp;tracker_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=init_pthread_lock(&amp;lb_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=init_pthread_attr(&amp;thread_attr, g_thread_stack_size)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"init_pthread_attr fail, program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">        init_connections = g_max_connections &lt; ALLOC_CONNECTIONS_ONCE ?</div><div class="line">        g_max_connections : ALLOC_CONNECTIONS_ONCE;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=free_queue_init_ex(g_max_connections, init_connections,</div><div class="line">                    ALLOC_CONNECTIONS_ONCE, TRACKER_MAX_PACKAGE_SIZE,</div><div class="line">                    TRACKER_MAX_PACKAGE_SIZE, sizeof(TrackerClientInfo))) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">// every thread has one nio_thread_data</span></div><div class="line">	bytes = sizeof(struct nio_thread_data) * g_work_threads;</div><div class="line">	g_thread_data = (struct nio_thread_data *)malloc(bytes );</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (g_thread_data == <span class="keyword">NULL</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"malloc %d bytes fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, bytes, errno, STRERROR(errno));</div><div class="line">		<span class="keyword">return</span> errno != <span class="number">0</span> ? errno : ENOMEM;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	memset(g_thread_data, <span class="number">0</span>, bytes);</div><div class="line"></div><div class="line">	g_tracker_thread_count = <span class="number">0</span>;</div><div class="line">	pDataEnd = g_thread_data + g_work_threads;   <span class="comment">// 默认g_work_threads为4</span></div><div class="line">	</div><div class="line">	<span class="keyword">for</span> (pThreadData=g_thread_data; pThreadData&lt;pDataEnd; pThreadData++)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> (ioevent_init(&amp;pThreadData-&gt;ev_puller,</div><div class="line">			g_max_connections + <span class="number">2</span>, <span class="number">1000</span>, <span class="number">0</span>) != <span class="number">0</span>) <span class="comment">// g_max_connections=256，初始化IO复用函数，超时为1秒</span></div><div class="line">		&#123;</div><div class="line">			result  = errno != <span class="number">0</span> ? errno : ENOMEM;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"ioevent_init fail, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">			<span class="keyword">return</span> result;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		result = fast_timer_init(&amp;pThreadData-&gt;timer,</div><div class="line">				<span class="number">2</span> * g_fdfs_network_timeout, g_current_time); <span class="comment">//初始化超时事件time wheel</span></div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (result != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"fast_timer_init fail, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">			<span class="keyword">return</span> result;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (pipe(pThreadData-&gt;pipe_fds) != <span class="number">0</span>)  <span class="comment">//创建管道</span></div><div class="line">		&#123;</div><div class="line">			result = errno != <span class="number">0</span> ? errno : EPERM;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"call pipe fail, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line"><span class="comment">#if defined(OS_LINUX)</span></div><div class="line">		<span class="keyword">if</span> ((result=fd_add_flags(pThreadData-&gt;pipe_fds[<span class="number">0</span>], \</div><div class="line">				O_NONBLOCK | O_NOATIME)) != <span class="number">0</span>) <span class="comment">// O_NOATIME: Do not update the file last access time </span></div><div class="line">		&#123;</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"><span class="comment">#else</span></div><div class="line">		<span class="keyword">if</span> ((result=fd_add_flags(pThreadData-&gt;pipe_fds[<span class="number">0</span>], \</div><div class="line">				O_NONBLOCK)) != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"><span class="comment">#endif</span></div><div class="line"></div><div class="line">		<span class="keyword">if</span> ((result=pthread_create(&amp;tid, &amp;thread_attr, \</div><div class="line">			work_thread_entrance, pThreadData)) != <span class="number">0</span>)  <span class="comment">//创建工作线程</span></div><div class="line">		&#123;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"create thread failed, startup threads: %d, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>, g_tracker_thread_count, \</div><div class="line">				result, STRERROR(result));</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span></div><div class="line">		&#123;</div><div class="line">			<span class="keyword">if</span> ((result=pthread_mutex_lock(&amp;tracker_thread_lock)) != <span class="number">0</span>)</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">			&#125;</div><div class="line">			</div><div class="line">			g_tracker_thread_count++; <span class="comment">//工作线程数量递增</span></div><div class="line">			</div><div class="line">			<span class="keyword">if</span> ((result=pthread_mutex_unlock(&amp;tracker_thread_lock)) != <span class="number">0</span>)</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	pthread_attr_destroy(&amp;thread_attr);</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//工作线程work_thread_entrance</span></div><div class="line"><span class="comment">// tracker child thread</span></div><div class="line"><span class="keyword">static</span> void *work_thread_entrance(void* arg)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> result;</div><div class="line">	struct nio_thread_data *pThreadData;</div><div class="line"></div><div class="line">	pThreadData = (struct nio_thread_data *)arg;</div><div class="line">	</div><div class="line">	ioevent_loop(pThreadData, recv_notify_read, task_finish_clean_up,</div><div class="line">		&amp;g_continue_flag);  <span class="comment">// 循环等待事件的到来并处理</span></div><div class="line">	</div><div class="line">	ioevent_destroy(&amp;pThreadData-&gt;ev_puller);</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=pthread_mutex_lock(&amp;tracker_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">			<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	g_tracker_thread_count--;  <span class="comment">//工作线程数量递减</span></div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=pthread_mutex_unlock(&amp;tracker_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">			<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="keyword">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//主线程</span></div><div class="line"><span class="comment">// accept a client request and dispatch request to child thread for processing</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> *<span class="title">accept_thread_entrance</span><span class="params">(<span class="keyword">void</span>* arg)</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> server_sock;</div><div class="line">	<span class="keyword">int</span> incomesock;</div><div class="line">	<span class="keyword">struct</span> sockaddr_in inaddr;</div><div class="line">	<span class="keyword">socklen_t</span> sockaddr_len;</div><div class="line">	<span class="keyword">struct</span> nio_thread_data *pThreadData;</div><div class="line">	server_sock = (<span class="keyword">long</span>)arg;</div><div class="line">	</div><div class="line">	<span class="keyword">while</span> (g_continue_flag)</div><div class="line">	&#123;</div><div class="line">		sockaddr_len = <span class="keyword">sizeof</span>(inaddr);</div><div class="line">		incomesock = accept(server_sock, (<span class="keyword">struct</span> sockaddr*)&amp;inaddr, &amp;sockaddr_len);</div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (incomesock &lt; <span class="number">0</span>) <span class="comment">//error</span></div><div class="line">		&#123;</div><div class="line">			<span class="keyword">if</span> (!(errno == EINTR || errno == EAGAIN))</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"accept failed, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					__LINE__, errno, STRERROR(errno));</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		pThreadData = g_thread_data + incomesock % g_work_threads;</div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (write(pThreadData-&gt;pipe_fds[<span class="number">1</span>], &amp;incomesock, \</div><div class="line">			<span class="keyword">sizeof</span>(incomesock)) != <span class="keyword">sizeof</span>(incomesock)) <span class="comment">// 将得到的client fd写入某个管道中，wakeup child thread</span></div><div class="line">		&#123;</div><div class="line">			close(incomesock);</div><div class="line">			logError(<span class="string">"file: "</span>__FILE__<span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"call write failed, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				__LINE__, errno, STRERROR(errno));</div><div class="line">		&#125;</div><div class="line">        <span class="keyword">else</span></div><div class="line">        &#123;</div><div class="line">            <span class="keyword">int</span> current_connections;</div><div class="line">            current_connections = __sync_add_and_fetch(&amp;g_connection_stat.</div><div class="line">                    current_count, <span class="number">1</span>);</div><div class="line">			</div><div class="line">            <span class="keyword">if</span> (current_connections &gt; g_connection_stat.max_count) </div><div class="line">			&#123;</div><div class="line">                g_connection_stat.max_count = current_connections;</div><div class="line">            &#125;</div><div class="line">			</div><div class="line">        &#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="literal">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之tracker主流程/" class="archive-article-date">
+  	<time datetime="2016-12-04T13:01:50.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2016/12/04/fastdfs之事件监听/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          fastdfs之事件监听
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/12/04/fastdfs连接池/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">fastdfs连接池</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs之tracker主流程" data-title="fastdfs之tracker主流程" data-url="http://damotiansheng.github.io/2016/12/04/fastdfs之tracker主流程/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+ -->
+
+<head>
+
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>fastdfs之超时事件的处理 | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="思想fastdfs有这样的一个需求，设置一个超时时间，时间到了，自动调用某个函数，其实现的思想有点像Timing wheel的思想，构造一个60（默认）个格子的循环队列，插入超时事件时，插入到(该事件超时时间-循环队列基准时间)%60的对应格子上去，每个格子是一个双向链表，接着采用epoll IO复用函数，1秒后，epoll超时返回，然后依据循环队列中的当前时间，遍历该循环队列，直到循环队列中的当">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs之超时事件的处理">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/12/04/fastdfs之超时事件的处理/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="思想fastdfs有这样的一个需求，设置一个超时时间，时间到了，自动调用某个函数，其实现的思想有点像Timing wheel的思想，构造一个60（默认）个格子的循环队列，插入超时事件时，插入到(该事件超时时间-循环队列基准时间)%60的对应格子上去，每个格子是一个双向链表，接着采用epoll IO复用函数，1秒后，epoll超时返回，然后依据循环队列中的当前时间，遍历该循环队列，直到循环队列中的当">
+<meta property="og:updated_time" content="2016-12-04T07:14:42.634Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fastdfs之超时事件的处理">
+<meta name="twitter:description" content="思想fastdfs有这样的一个需求，设置一个超时时间，时间到了，自动调用某个函数，其实现的思想有点像Timing wheel的思想，构造一个60（默认）个格子的循环队列，插入超时事件时，插入到(该事件超时时间-循环队列基准时间)%60的对应格子上去，每个格子是一个双向链表，接着采用epoll IO复用函数，1秒后，epoll超时返回，然后依据循环队列中的当前时间，遍历该循环队列，直到循环队列中的当">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+<!--  
+ -->
+  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-fastdfs之超时事件的处理" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      fastdfs之超时事件的处理
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>fastdfs有这样的一个需求，设置一个超时时间，时间到了，自动调用某个函数，其实现的思想有点像Timing wheel的思想，构造一个60（默认）个格子的循环队列，插入超时事件时，插入到(该事件超时时间-循环队列基准时间)%60的对应格子上去，每个格子是一个双向链表，接着采用epoll IO复用函数，1秒后，epoll超时返回，然后依据循环队列中的当前时间，遍历该循环队列，直到循环队列中的当前时间等于当前系统时间，遍历时，判断事件是否超时，将所有已经超时的事件提取出来（从循环队列中删除），构造成链表，接着遍历该链表，依次调用超时事件的回调函数，达到超时事件的处理；<br><a href="http://blog.csdn.net/solstice/article/details/6395098" target="_blank" rel="external">Timing wheel1</a><br><a href="http://blog.csdn.net/mindfloating/article/details/8033340" target="_blank" rel="external">Timing wheel2</a><br><a id="more"></a></p>
+<h2 id="相关数据结构"><a href="#相关数据结构" class="headerlink" title="相关数据结构"></a>相关数据结构</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> fast_timer_entry &#123;</div><div class="line">  <span class="keyword">int64_t</span> expires;</div><div class="line">  <span class="keyword">void</span> *data;</div><div class="line">  <span class="keyword">struct</span> fast_timer_entry *prev;</div><div class="line">  <span class="keyword">struct</span> fast_timer_entry *next;</div><div class="line">  <span class="keyword">bool</span> rehash;</div><div class="line">&#125; FastTimerEntry;  <span class="comment">// pre and next to construct a double linked list</span></div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> fast_timer_slot &#123;</div><div class="line">  <span class="keyword">struct</span> fast_timer_entry head;</div><div class="line">&#125; FastTimerSlot;</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> fast_timer </div><div class="line">&#123;</div><div class="line">  <span class="keyword">int</span> slot_count;    <span class="comment">//time wheel slot count, default is 60</span></div><div class="line">  <span class="keyword">int64_t</span> base_time; <span class="comment">//base time for slot 0, set to current time， 基准事件</span></div><div class="line">  <span class="keyword">int64_t</span> current_time; <span class="comment">//set to current time</span></div><div class="line">  FastTimerSlot *slots; <span class="comment">//the size is sizeof(FastTimerSlot) * slot_count</span></div><div class="line">&#125; FastTimer;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> TIMER_GET_SLOT_INDEX(timer, expires) \</span></div><div class="line">  (((expires) - timer-&gt;base_time) % timer-&gt;slot_count)</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> TIMER_GET_SLOT_POINTER(timer, expires) \</span></div><div class="line">  (timer-&gt;slots + TIMER_GET_SLOT_INDEX(timer, expires))</div></pre></td></tr></table></figure>
+<h2 id="相关代码"><a href="#相关代码" class="headerlink" title="相关代码"></a>相关代码</h2><p>// fast_timer.h/fast_timer.c<br>// init the timer, slot_count=60<br>int fast_timer_init(FastTimer *timer, const int slot_count,<br>    const int64_t current_time)<br>{<br>  int bytes;</p>
+<p>  if (slot_count &lt;= 0 || current_time &lt;= 0)<br>  {<br>    return EINVAL;<br>  }</p>
+<p>  timer-&gt;slot_count = slot_count;  //default is 60<br>  timer-&gt;base_time = current_time; //base time for slot 0<br>  timer-&gt;current_time = current_time;<br>  bytes = sizeof(FastTimerSlot) <em> slot_count;<br>  timer-&gt;slots = (FastTimerSlot </em>)malloc(bytes);</p>
+<p>  if (timer-&gt;slots == NULL)<br>  {<br>     return errno != 0 ? errno : ENOMEM;<br>  }</p>
+<p>  memset(timer-&gt;slots, 0, bytes);<br>  return 0;</p>
+<p>}</p>
+<p>int ioevent_loop(struct nio_thread_data <em>pThreadData,<br>    IOEventCallback recv_notify_callback, TaskCleanUpCallback<br>    clean_up_callback, volatile bool </em>continue_flag)<br>{<br>    int result;<br>    IOEventEntry ev_notify;<br>    FastTimerEntry head;<br>    struct fast_task_info *pTask;<br>    time_t last_check_time;<br>    int count;</p>
+<pre><code>memset(&amp;ev_notify, 0, sizeof(ev_notify));
+ev_notify.fd = pThreadData-&gt;pipe_fds[0];
+ev_notify.callback = recv_notify_callback;
+
+if (ioevent_attach(&amp;pThreadData-&gt;ev_puller,
+    pThreadData-&gt;pipe_fds[0], IOEVENT_READ,
+    &amp;ev_notify) != 0)
+{
+    result = errno != 0 ? errno : ENOMEM;
+    logCrit(&quot;file: &quot;__FILE__&quot;, line: %d, &quot; \
+        &quot;ioevent_attach fail, &quot; \
+        &quot;errno: %d, error info: %s&quot;, \
+        __LINE__, result, STRERROR(result));
+    return result;
+}
+
+pThreadData-&gt;deleted_list = NULL;
+last_check_time = g_current_time;
+
+while (*continue_flag)
+{
+    // one seconds later, ioevent_poll will return
+    pThreadData-&gt;ev_puller.iterator.count = ioevent_poll(&amp;pThreadData-&gt;ev_puller); //若没有fd就绪，1秒后会超时返回（ioevent_init函数设置了timeout为1秒）
+
+    if (pThreadData-&gt;ev_puller.iterator.count &gt; 0)
+    {
+        deal_ioevents(&amp;pThreadData-&gt;ev_puller);
+    }
+    else if (pThreadData-&gt;ev_puller.iterator.count &lt; 0) // error occured
+    {
+        result = errno != 0 ? errno : EINVAL;
+
+        if (result != EINTR)
+        {
+            logError(&quot;file: &quot;__FILE__&quot;, line: %d, &quot; \
+                &quot;ioevent_poll fail, &quot; \
+                &quot;errno: %d, error info: %s&quot;, \
+                __LINE__, result, STRERROR(result));
+            return result;
+        }
+    }
+
+    // timeout, 1 second later 
+    if (pThreadData-&gt;deleted_list != NULL) // cleanup task callback is not null
+    {
+        count = 0;
+
+        while (pThreadData-&gt;deleted_list != NULL)
+        {
+            pTask = pThreadData-&gt;deleted_list;
+            pThreadData-&gt;deleted_list = pTask-&gt;next;
+
+            clean_up_callback(pTask);
+            count++;
+        }
+
+        logDebug(&quot;cleanup task count: %d&quot;, count);
+    }
+
+    if (g_current_time - last_check_time &gt; 0)
+    {
+        last_check_time = g_current_time;  // the unit of g_current_time is seconds 
+        count = fast_timer_timeouts_get(
+            &amp;pThreadData-&gt;timer, g_current_time, &amp;head); // get the expire event count，得到已经超时的事件
+
+        if (count &gt; 0)  // timeout event has been saved to head
+        {
+            deal_timeouts(&amp;head); // process the timeout event，处理超时事件
+        }
+    }
+
+    if (pThreadData-&gt;thread_loop_callback != NULL) 
+    {
+        pThreadData-&gt;thread_loop_callback(pThreadData);  // call this function every one loop 
+    }
+
+}
+
+return 0;
+</code></pre><p>}</p>
+<p>// save expired FastTimerEntry to head<br>int fast_timer_timeouts_get(FastTimer <em>timer, const int64_t current_time,<br>   FastTimerEntry </em>head)<br>{<br>  FastTimerSlot <em>slot;<br>  FastTimerEntry </em>entry;<br>  FastTimerEntry <em>first;<br>  FastTimerEntry </em>last;<br>  FastTimerEntry *tail;<br>  int count;</p>
+<p>  head-&gt;prev = NULL;<br>  head-&gt;next = NULL;</p>
+<p>  if (timer-&gt;current_time &gt;= current_time) // don’t timeout, just return<br>  {<br>    return 0;<br>  }</p>
+<p>  first = NULL;<br>  last = NULL;<br>  tail = head;<br>  count = 0;</p>
+<p>  while (timer-&gt;current_time &lt; current_time)<br>  {<br>    slot = TIMER_GET_SLOT_POINTER(timer, timer-&gt;current_time++); //<br>    entry = slot-&gt;head.next;</p>
+<pre><code>while (entry != NULL) 
+{
+  if (entry-&gt;expires &gt;= current_time) //not expired
+  {  
+     if (first != NULL) 
+     {
+        first-&gt;prev-&gt;next = entry;
+        entry-&gt;prev = first-&gt;prev;
+
+        tail-&gt;next = first;
+        first-&gt;prev = tail;
+        tail = last;
+        first = NULL;
+     }
+
+     if (entry-&gt;rehash) 
+     {
+       last = entry;
+       entry = entry-&gt;next;
+
+       last-&gt;rehash = false;
+       fast_timer_remove(timer, last);
+       fast_timer_add(timer, last);
+       continue;
+     }
+
+  }
+  else         //expired
+  {  
+     count++;
+
+     if (first == NULL) 
+     {
+        first = entry;
+     }
+  }
+
+  last = entry;
+  entry = entry-&gt;next;
+}
+
+if (first != NULL) 
+{
+   first-&gt;prev-&gt;next = NULL;
+
+   tail-&gt;next = first;
+   first-&gt;prev = tail;
+   tail = last;
+   first = NULL;
+}
+</code></pre><p>  }</p>
+<p>  if (count &gt; 0)<br>  {<br>     tail-&gt;next = NULL;<br>  }</p>
+<p>  return count;<br>}</p>
+<p>//插入超时事件<br>// add entry to timer according to entry-&gt;expires<br>int fast_timer_add(FastTimer <em>timer, FastTimerEntry </em>entry)<br>{<br>  FastTimerSlot *slot;</p>
+<p>  slot = TIMER_GET_SLOT_POINTER(timer, entry-&gt;expires &gt;<br>     timer-&gt;current_time ? entry-&gt;expires : timer-&gt;current_time);<br>  entry-&gt;next = slot-&gt;head.next;</p>
+<p>  if (slot-&gt;head.next != NULL)<br>  {<br>    slot-&gt;head.next-&gt;prev = entry;<br>  }</p>
+<p>  entry-&gt;prev = &amp;slot-&gt;head;<br>  slot-&gt;head.next = entry;<br>  entry-&gt;rehash = false;<br>  return 0;<br>}</p>
+<p>```</p>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之超时事件的处理/" class="archive-article-date">
+  	<time datetime="2016-12-04T14:52:34.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/超时事件/">超时事件</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2016/12/05/fastdfs之storage主流程/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          fastdfs之storage主流程
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/12/04/fastdfs之事件监听/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">fastdfs之事件监听</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs之超时事件的处理" data-title="fastdfs之超时事件的处理" data-url="http://damotiansheng.github.io/2016/12/04/fastdfs之超时事件的处理/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>

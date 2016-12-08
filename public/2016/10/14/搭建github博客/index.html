@@ -27,7 +27,7 @@ var _hmt = _hmt || [];
 <meta property="og:site_name" content="damotiansheng的博客">
 <meta property="og:description" content="目的: 利用hexo将个人博客搭建到github上参考的相关文章">
 <meta property="og:image" content="https://damotiansheng.github.io/photos/damotiansheng.png">
-<meta property="og:updated_time" content="2016-10-24T03:15:07.459Z">
+<meta property="og:updated_time" content="2016-11-06T11:08:18.222Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="搭建github博客">
 <meta name="twitter:description" content="目的: 利用hexo将个人博客搭建到github上参考的相关文章">
@@ -79,6 +79,8 @@ var _hmt = _hmt || [];
 			<ul>
 			
 				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
 	        
 				<li><a href="/photos/damotiansheng.png">相册</a></li>
 	        
@@ -150,6 +152,8 @@ var _hmt = _hmt || [];
 				<ul>
 				
 					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
 		        
 					<li><a href="/photos/damotiansheng.png">相册</a></li>
 		        
@@ -230,6 +234,11 @@ var _hmt = _hmt || [];
 <li>在主目录下的source文件夹下(与_posts同目录)新建photos目录，并将xxx.png放到该目录</li>
 <li>修改theme-yilia下的_config.yml文件，修改为：avatar: /photos/xxx.png</li>
 <li>重新生成并部署即可</li>
+</ul>
+</blockquote>
+<h3 id="10、注意"><a href="#10、注意" class="headerlink" title="10、注意"></a>10、注意</h3><blockquote>
+<ul>
+<li>有时hexo new xxx文章后，发布后有乱码，此时删除该文章，然后直接vim新建，然后到博客主目录下执行hexo g -&gt; hexo d，有乱码可能就是由于没有在主目录下执行命令，而在_posts目录下执行命令进行发布了。</li>
 </ul>
 </blockquote>
 
@@ -387,7 +396,7 @@ MathJax.Hub.Queue(function() {
     
     	<section class="tools-section tools-section-tag">
     			<div class="widget tagcloud" id="js-tagcloud">
-    				<a href="/tags/fastdfs/" style="font-size: 10px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a>
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
     			</div>
     	</section>
     

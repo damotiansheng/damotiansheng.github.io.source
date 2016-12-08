@@ -18,17 +18,21 @@ var _hmt = _hmt || [];
   <meta charset="utf-8">
   
   <meta http-equiv="X-UA-Compatible" content="IE=edge" >
-  <title>Archives | damotiansheng的博客</title>
+  <title>fastdfs连接池 | damotiansheng的博客</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="开始我的github博客之旅(2016-10-13)">
-<meta property="og:type" content="website">
-<meta property="og:title" content="damotiansheng的博客">
-<meta property="og:url" content="http://damotiansheng.github.io/archives/index.html">
+  <meta name="description" content="fastdfs连接池
+思想为了提高连接速度，fastdfs使用到了连接池，并用hash数组来加速查找，key为ip_port, value为：ConnectionManager（见后面），当需要进行连接某个ip:port时，以该ip_port作为key，到hash数组中查找，得到value:ConnectionManager,该结构中保存了针对该ip:port的已建立连接的socket，第一次连接">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs连接池">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/12/04/fastdfs连接池/index.html">
 <meta property="og:site_name" content="damotiansheng的博客">
-<meta property="og:description" content="开始我的github博客之旅(2016-10-13)">
+<meta property="og:description" content="fastdfs连接池
+思想为了提高连接速度，fastdfs使用到了连接池，并用hash数组来加速查找，key为ip_port, value为：ConnectionManager（见后面），当需要进行连接某个ip:port时，以该ip_port作为key，到hash数组中查找，得到value:ConnectionManager,该结构中保存了针对该ip:port的已建立连接的socket，第一次连接">
+<meta property="og:updated_time" content="2016-12-04T07:21:22.050Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="damotiansheng的博客">
-<meta name="twitter:description" content="开始我的github博客之旅(2016-10-13)">
+<meta name="twitter:title" content="fastdfs连接池">
+<meta name="twitter:description" content="fastdfs连接池
+思想为了提高连接速度，fastdfs使用到了连接池，并用hash数组来加速查找，key为ip_port, value为：ConnectionManager（见后面），当需要进行连接某个ip:port时，以该ip_port作为key，到hash数组中查找，得到value:ConnectionManager,该结构中保存了针对该ip:port的已建立连接的socket，第一次连接">
   
     <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
   
@@ -176,352 +180,101 @@ var _hmt = _hmt || [];
 </nav>
 
       <div class="body-wrap">
+        <article id="post-fastdfs连接池" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
         
   
+    <h1 class="article-title" itemprop="name">
+      fastdfs连接池
+    </h1>
   
+
+      </header>
     
-    
+    <div class="article-entry" itemprop="articleBody">
       
+        <h1 id="fastdfs连接池"><a href="#fastdfs连接池" class="headerlink" title="fastdfs连接池"></a>fastdfs连接池</h1><hr>
+<h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>为了提高连接速度，fastdfs使用到了连接池，并用hash数组来加速查找，key为ip_port, value为：ConnectionManager（见后面），当需要进行连接某个ip:port时，以该ip_port作为key，到hash数组中查找，得到value:ConnectionManager,该结构中保存了针对该ip:port的已建立连接的socket，第一次连接时，会调用conn_pool_connect_server函数建立连接，当需要关闭某个连接时，会调用conn_pool_close_connection_ex函数来将该连接放入连接池中或者直接关闭该连接，放入连接池中即会插入到hash数组中去，此外还会依据该连接的上次访问时间，如果很久没有访问该连接了，就会关闭该连接，见conn_pool_get_connection函数，通过hash数组+关闭连接时将该连接保存到hash数组中来实现连接池，提高连接速度；<br><a id="more"></a></p>
+<h2 id="用到的数据结构"><a href="#用到的数据结构" class="headerlink" title="用到的数据结构"></a>用到的数据结构</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> sock;</div><div class="line">	<span class="keyword">int</span> port;</div><div class="line">	<span class="keyword">char</span> ip_addr[INET6_ADDRSTRLEN];</div><div class="line">    <span class="keyword">int</span> socket_domain;  <span class="comment">//socket domain, AF_INET, AF_INET6 or PF_UNSPEC for auto dedect</span></div><div class="line">&#125; ConnectionInfo;</div><div class="line"></div><div class="line"><span class="keyword">struct</span> tagConnectionManager;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> tagConnectionNode &#123;</div><div class="line">	ConnectionInfo *conn;  <span class="comment">// pointer the end of ConnectionNode, see conn_pool_get_connection func</span></div><div class="line">	<span class="keyword">struct</span> tagConnectionManager *manager;</div><div class="line">	<span class="keyword">struct</span> tagConnectionNode *next; <span class="comment">// pointer to next ConnectionNode which is the same ip and port in conn</span></div><div class="line">	<span class="keyword">time_t</span> atime;  <span class="comment">//last access time, if </span></div><div class="line">&#125; ConnectionNode;</div><div class="line"></div><div class="line"><span class="comment">// connection pool, key is ip_port, value is ConnectionManager, see conn_pool_get_connection func</span></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> tagConnectionManager &#123;</div><div class="line">	ConnectionNode *head;  <span class="comment">// head pointer to the first ConnectionNode</span></div><div class="line">	<span class="keyword">int</span> total_count;  <span class="comment">//total connections，已经建立的连接数，超过一定数值时，不会再建立连接</span></div><div class="line">	<span class="keyword">int</span> free_count;   <span class="comment">//free connections</span></div><div class="line">	<span class="keyword">pthread_mutex_t</span> lock;</div><div class="line">&#125; ConnectionManager;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> tagConnectionPool &#123;</div><div class="line">	HashArray hash_array;  <span class="comment">//key is ip_port, value is ConnectionManager, see conn_pool_get_key func</span></div><div class="line">	<span class="keyword">pthread_mutex_t</span> lock;</div><div class="line">	<span class="keyword">int</span> connect_timeout;</div><div class="line">	<span class="keyword">int</span> max_count_per_entry;  <span class="comment">//0 means no limit</span></div><div class="line"></div><div class="line">	<span class="comment">/*</span></div><div class="line">	connections whose the idle time exceeds this time will be closed</div><div class="line">    unit: second</div><div class="line">	*/</div><div class="line">	<span class="keyword">int</span> max_idle_time;</div><div class="line">    <span class="keyword">int</span> socket_domain;  <span class="comment">//socket domain</span></div><div class="line">&#125; ConnectionPool;</div></pre></td></tr></table></figure>
+<h2 id="相关代码"><a href="#相关代码" class="headerlink" title="相关代码"></a>相关代码</h2><p>connection_pool.h/connection_pool.c<br>核心函数：conn_pool_get_connection</p>
+
       
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2016" class="archive-year">2016</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/12/05/fastdfs之storage主流程/" class="archive-article-date">
-  	<time datetime="2016-12-04T17:08:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/12/05/fastdfs之storage主流程/">fastdfs之storage主流程</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/12/04/fastdfs之超时事件的处理/" class="archive-article-date">
-  	<time datetime="2016-12-04T14:52:34.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/12/04/fastdfs之超时事件的处理/">fastdfs之超时事件的处理</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/超时事件/">超时事件</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/12/04/fastdfs之事件监听/" class="archive-article-date">
-  	<time datetime="2016-12-04T14:25:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/12/04/fastdfs之事件监听/">fastdfs之事件监听</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/epoll/">epoll</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/12/04/fastdfs之tracker主流程/" class="archive-article-date">
-  	<time datetime="2016-12-04T13:01:50.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/12/04/fastdfs之tracker主流程/">fastdfs之tracker主流程</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/12/04/fastdfs连接池/" class="archive-article-date">
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs连接池/" class="archive-article-date">
   	<time datetime="2016-12-03T17:51:25.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-03</time>
 </a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/12/04/fastdfs连接池/">fastdfs连接池</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
+      
 	<div class="article-tag tagcloud">
 		<i class="icon-price-tags"></i>
 		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/连接池/">连接池</a></li></ul>
 	</div>
 
-          
+      
 
-        </div>
-        <div class="clearfix"></div>
-    </header>
+      <div class="clearfix"></div>
+    </div>
   </div>
 </article>
+
   
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/11/28/多个线程监听同一个fd/" class="archive-article-date">
-  	<time datetime="2016-11-27T16:23:59.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-11-27</time>
-</a>
-        </div>
-    	 
+<nav id="article-nav">
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/11/28/多个线程监听同一个fd/">多个线程监听同一个fd</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/multi-pthread/">multi pthread</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/11/07/fastdfs配置文件解析模块/" class="archive-article-date">
-  	<time datetime="2016-11-06T19:11:20.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-11-06</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/11/07/fastdfs配置文件解析模块/">fastdfs配置文件解析模块</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-	<i class="icon-price-tags"></i>
-	<a class="article-category-link" href="/categories/fastdfs/">fastdfs</a>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/10/24/hello-world/" class="archive-article-date">
-  	<time datetime="2016-10-24T03:15:07.459Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-24</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/10/24/hello-world/">Hello World</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/github/">github</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/hexo/">hexo</a></li></ul>
-	</div>
-
-          
-	<div class="article-category tagcloud">
-	<i class="icon-price-tags"></i>
-	<a class="article-category-link" href="/categories/hexo/">hexo</a>
-	</div>
-
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/10/22/fastdfs文件系统搭建/" class="archive-article-date">
-  	<time datetime="2016-10-21T16:54:20.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-21</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/10/22/fastdfs文件系统搭建/">fastdfs文件系统搭建</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式文件系统/">分布式文件系统</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      	<div class="article-meta">
-	      	<a href="/2016/10/14/搭建github博客/" class="archive-article-date">
-  	<time datetime="2016-10-14T10:42:33.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-10-14</time>
-</a>
-        </div>
-    	 
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2016/10/14/搭建github博客/">搭建github博客</a>
-    </h1>
-  
-
-        <div class="article-info info-on-right">
-          
-	<div class="article-tag tagcloud">
-		<i class="icon-price-tags"></i>
-		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/搭建github博客/">搭建github博客</a></li></ul>
-	</div>
-
-          
-
-        </div>
-        <div class="clearfix"></div>
-    </header>
-  </div>
-</article>
+    <a href="/2016/12/04/fastdfs之tracker主流程/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          fastdfs之tracker主流程
+        
+      </div>
+    </a>
   
   
-    </div></section>
+    <a href="/2016/11/28/多个线程监听同一个fd/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">多个线程监听同一个fd</div>
+      <i class="icon-circle-right"></i>
+    </a>
   
+</nav>
 
-    
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs连接池" data-title="fastdfs连接池" data-url="http://damotiansheng.github.io/2016/12/04/fastdfs连接池/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
 
 
       </div>
@@ -550,8 +303,8 @@ var _hmt = _hmt || [];
 		mathjax: true,
 		animate: true,
 		isHome: false,
-		isPost: false,
-		isArchive: true,
+		isPost: true,
+		isArchive: false,
 		isTag: false,
 		isCategory: false,
 		open_in_new: true,

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+ -->
+
+<head>
+
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>fastdfs之事件监听 | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="思想fastdfs需要监听某个fd的事件，当fd就绪时自动调用某个函数进行处理，其思想是将该事件的回调函数，fd保存到epoll_event结构体中，当该fd就绪时就可得到该结构体，从而调用该回调函数；epoll机制">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs之事件监听">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/12/04/fastdfs之事件监听/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="思想fastdfs需要监听某个fd的事件，当fd就绪时自动调用某个函数进行处理，其思想是将该事件的回调函数，fd保存到epoll_event结构体中，当该fd就绪时就可得到该结构体，从而调用该回调函数；epoll机制">
+<meta property="og:updated_time" content="2016-12-04T07:15:14.170Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fastdfs之事件监听">
+<meta name="twitter:description" content="思想fastdfs需要监听某个fd的事件，当fd就绪时自动调用某个函数进行处理，其思想是将该事件的回调函数，fd保存到epoll_event结构体中，当该fd就绪时就可得到该结构体，从而调用该回调函数；epoll机制">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+<!--  
+ -->
+  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-fastdfs之事件监听" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      fastdfs之事件监听
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="思想"><a href="#思想" class="headerlink" title="思想"></a>思想</h2><p>fastdfs需要监听某个fd的事件，当fd就绪时自动调用某个函数进行处理，其思想是将该事件的回调函数，fd保存到epoll_event结构体中，当该fd就绪时就可得到该结构体，从而调用该回调函数；<br><a href="http://blog.csdn.net/yusiguyuan/article/details/15027821" target="_blank" rel="external">epoll机制</a><br><a id="more"></a></p>
+<h2 id="相关数据结构"><a href="#相关数据结构" class="headerlink" title="相关数据结构"></a>相关数据结构</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> ioevent_puller &#123;</div><div class="line">    <span class="keyword">int</span> size;  <span class="comment">//set to g_max_connections + 2,default is 256+2, max events (fd) , equal as the parameter of epoll_create</span></div><div class="line">    <span class="keyword">int</span> extra_events;</div><div class="line">    <span class="keyword">int</span> poll_fd; <span class="comment">// poll_fd = epoll_create(ioevent-&gt;size)</span></div><div class="line"></div><div class="line"><span class="comment">/*</span></div><div class="line">When  successful,  epoll_wait()  returns the number of file descriptors</div><div class="line">       ready for the requested I/O, or zero if no file descriptor became ready</div><div class="line">       during  the  requested  timeout  milliseconds.   When  an error occurs,</div><div class="line">       epoll_wait() returns -1 and errno is set appropriately.</div><div class="line">*/</div><div class="line">    <span class="keyword">struct</span> </div><div class="line">	&#123;</div><div class="line">        <span class="keyword">int</span> index;</div><div class="line">        <span class="keyword">int</span> count;  <span class="comment">// count=epoll_wait(...)</span></div><div class="line">    &#125; iterator;  <span class="comment">//for deal event loop</span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> IOEVENT_USE_EPOLL</span></div><div class="line">    <span class="keyword">struct</span> epoll_event *events; <span class="comment">// the size is ( size * sizeof(struct epoll_event) )</span></div><div class="line">    <span class="keyword">int</span> timeout;                  <span class="comment">// default is 1000</span></div><div class="line"><span class="meta">#<span class="meta-keyword">elif</span> IOEVENT_USE_KQUEUE</span></div><div class="line">    <span class="keyword">struct</span> kevent *events;</div><div class="line">    <span class="keyword">struct</span> timespec timeout;</div><div class="line">    <span class="keyword">int</span> care_events;</div><div class="line"><span class="meta">#<span class="meta-keyword">elif</span> IOEVENT_USE_PORT</span></div><div class="line">    <span class="keyword">port_event_t</span> *events;</div><div class="line">    <span class="keyword">timespec_t</span> timeout;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line">&#125; IOEventPoller;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">typedef</span> <span class="title">void</span> <span class="params">(*IOEventCallback)</span> <span class="params">(<span class="keyword">int</span> sock, <span class="keyword">short</span> event, <span class="keyword">void</span> *arg)</span></span>;</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> ioevent_entry</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> fd;                <span class="comment">// it will be added to nio_thread_data-&gt;ev_puller</span></div><div class="line">	FastTimerEntry timer; <span class="comment">// for event timeout, it will be added to nio_thread_data-&gt;timer</span></div><div class="line">	IOEventCallback callback;</div><div class="line">&#125; IOEventEntry;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> IOEVENT_USE_EPOLL</span></div><div class="line">  <span class="meta">#<span class="meta-keyword">define</span> IOEVENT_GET_EVENTS(ioevent, index) \</span></div><div class="line">      ioevent-&gt;events[index].events</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">if</span> IOEVENT_USE_EPOLL</span></div><div class="line">  <span class="meta">#<span class="meta-keyword">define</span> IOEVENT_GET_DATA(ioevent, index)  \</span></div><div class="line">      ioevent-&gt;events[index].data.ptr</div></pre></td></tr></table></figure>
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//初始化</span></div><div class="line"><span class="comment">//ioevent_init(&amp;pThreadData-&gt;ev_puller,g_max_connections + 2, 1000, 0) // 1000毫秒</span></div><div class="line"></div><div class="line"><span class="comment">// size=256+2, timeout_ms=1000, extra_events=0</span></div><div class="line"><span class="comment">// ioevent_init(&amp;pThreadData-&gt;ev_puller, g_max_connections + 2, 1000, 0)</span></div><div class="line"><span class="keyword">int</span> ioevent_init(IOEventPoller *ioevent, <span class="keyword">const</span> <span class="keyword">int</span> size,</div><div class="line">    <span class="keyword">const</span> <span class="keyword">int</span> timeout_ms, <span class="keyword">const</span> <span class="keyword">int</span> extra_events)</div><div class="line">&#123;</div><div class="line">  <span class="keyword">int</span> bytes;</div><div class="line"></div><div class="line">  ioevent-&gt;size = size;</div><div class="line">  ioevent-&gt;extra_events = extra_events;</div><div class="line">  ioevent-&gt;iterator.index = <span class="number">0</span>;</div><div class="line">  ioevent-&gt;iterator.count = <span class="number">0</span>;</div><div class="line"></div><div class="line"><span class="comment">#if IOEVENT_USE_EPOLL</span></div><div class="line">  ioevent-&gt;poll_fd = epoll_create(ioevent-&gt;size);</div><div class="line">  bytes = sizeof(struct epoll_event) * size;</div><div class="line">  ioevent-&gt;events = (struct epoll_event *)malloc(bytes);</div><div class="line"><span class="comment">#elif IOEVENT_USE_KQUEUE</span></div><div class="line">  ioevent-&gt;poll_fd = kqueue();</div><div class="line">  bytes = sizeof(struct kevent) * size;</div><div class="line">  ioevent-&gt;events = (struct kevent *)malloc(bytes);</div><div class="line">  ioevent-&gt;care_events = <span class="number">0</span>;</div><div class="line"><span class="comment">#elif IOEVENT_USE_PORT</span></div><div class="line">  ioevent-&gt;poll_fd = port_create();</div><div class="line">  bytes = sizeof(port_event_t) * size;</div><div class="line">  ioevent-&gt;events = (port_event_t *)malloc(bytes);</div><div class="line"><span class="comment">#endif</span></div><div class="line"></div><div class="line">  <span class="keyword">if</span> (ioevent-&gt;events == <span class="keyword">NULL</span>) </div><div class="line">  &#123;</div><div class="line">    <span class="keyword">return</span> errno != <span class="number">0</span> ? errno : ENOMEM;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// set the ioevent-&gt;timeout to timeout_ms</span></div><div class="line">  ioevent_set_timeout(ioevent, timeout_ms); <span class="comment">// 设置超时时间为1秒</span></div><div class="line"></div><div class="line">  <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="comment">//事件监听处理循环</span></div><div class="line"><span class="comment">//ioevent_loop(pThreadData, recv_notify_read, task_finish_clean_up, &amp;g_continue_flag);</span></div><div class="line"><span class="comment">/*</span></div><div class="line">ioevent_loop(pThreadData, recv_notify_read, task_finish_clean_up,</div><div class="line">		&amp;g_continue_flag);</div><div class="line">		// g_continue_flag is true default</div><div class="line">*/</div><div class="line"><span class="keyword">int</span> ioevent_loop(struct nio_thread_data *pThreadData,</div><div class="line">	IOEventCallback recv_notify_callback, TaskCleanUpCallback</div><div class="line">	clean_up_callback, volatile <span class="keyword">bool</span> *continue_flag)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> result;</div><div class="line">	IOEventEntry ev_notify;</div><div class="line">	FastTimerEntry head;</div><div class="line">	struct fast_task_info *pTask;</div><div class="line">	time_t last_check_time;</div><div class="line">	<span class="keyword">int</span> count;</div><div class="line"></div><div class="line">	memset(&amp;ev_notify, <span class="number">0</span>, sizeof(ev_notify));</div><div class="line">	ev_notify.fd = pThreadData-&gt;pipe_fds[<span class="number">0</span>];</div><div class="line">	ev_notify.callback = recv_notify_callback;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (ioevent_attach(&amp;pThreadData-&gt;ev_puller,</div><div class="line">		pThreadData-&gt;pipe_fds[<span class="number">0</span>], IOEVENT_READ,</div><div class="line">		&amp;ev_notify) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		result = errno != <span class="number">0</span> ? errno : ENOMEM;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"ioevent_attach fail, "</span> \</div><div class="line">			<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    pThreadData-&gt;deleted_list = <span class="keyword">NULL</span>;</div><div class="line">	last_check_time = g_current_time;</div><div class="line">	</div><div class="line">	<span class="keyword">while</span> (*continue_flag)</div><div class="line">	&#123;</div><div class="line">		<span class="comment">// one seconds later, ioevent_poll will return</span></div><div class="line">		pThreadData-&gt;ev_puller.iterator.count = ioevent_poll(&amp;pThreadData-&gt;ev_puller);</div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (pThreadData-&gt;ev_puller.iterator.count &gt; <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			deal_ioevents(&amp;pThreadData-&gt;ev_puller);</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (pThreadData-&gt;ev_puller.iterator.count &lt; <span class="number">0</span>) <span class="comment">// error occured</span></div><div class="line">		&#123;</div><div class="line">			result = errno != <span class="number">0</span> ? errno : EINVAL;</div><div class="line">			</div><div class="line">			<span class="keyword">if</span> (result != EINTR)</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"ioevent_poll fail, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">				<span class="keyword">return</span> result;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">        <span class="comment">// timeout, 1 second later </span></div><div class="line">		<span class="keyword">if</span> (pThreadData-&gt;deleted_list != <span class="keyword">NULL</span>) <span class="comment">// cleanup task callback is not null</span></div><div class="line">		&#123;</div><div class="line">			count = <span class="number">0</span>;</div><div class="line">			</div><div class="line">			<span class="keyword">while</span> (pThreadData-&gt;deleted_list != <span class="keyword">NULL</span>)</div><div class="line">			&#123;</div><div class="line">				pTask = pThreadData-&gt;deleted_list;</div><div class="line">				pThreadData-&gt;deleted_list = pTask-&gt;next;</div><div class="line"></div><div class="line">				clean_up_callback(pTask);</div><div class="line">				count++;</div><div class="line">			&#125;</div><div class="line">			</div><div class="line">			logDebug(<span class="string">"cleanup task count: %d"</span>, count);</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (g_current_time - last_check_time &gt; <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			last_check_time = g_current_time;  <span class="comment">// the unit of g_current_time is seconds </span></div><div class="line">			count = fast_timer_timeouts_get(</div><div class="line">				&amp;pThreadData-&gt;timer, g_current_time, &amp;head); <span class="comment">// get the expire event count</span></div><div class="line">				</div><div class="line">			<span class="keyword">if</span> (count &gt; <span class="number">0</span>)  <span class="comment">// timeout event has been saved to head</span></div><div class="line">			&#123;</div><div class="line">				deal_timeouts(&amp;head); <span class="comment">// process the timeout event</span></div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (pThreadData-&gt;thread_loop_callback != <span class="keyword">NULL</span>) </div><div class="line">		&#123;</div><div class="line">            pThreadData-&gt;thread_loop_callback(pThreadData);  <span class="comment">// call this function every one loop </span></div><div class="line">        &#125;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">int</span> ioevent_poll(IOEventPoller *ioevent)</div><div class="line">&#123;</div><div class="line"><span class="comment">#if IOEVENT_USE_EPOLL</span></div><div class="line">  <span class="keyword">return</span> epoll_wait(ioevent-&gt;poll_fd, ioevent-&gt;events, ioevent-&gt;size, ioevent-&gt;timeout);</div><div class="line"><span class="comment">#elif IOEVENT_USE_KQUEUE</span></div><div class="line">  <span class="keyword">return</span> kevent(ioevent-&gt;poll_fd, <span class="keyword">NULL</span>, <span class="number">0</span>, ioevent-&gt;events, ioevent-&gt;size, &amp;ioevent-&gt;timeout);</div><div class="line"><span class="comment">#elif IOEVENT_USE_PORT</span></div><div class="line">  <span class="keyword">int</span> result;</div><div class="line">  <span class="keyword">int</span> retval;</div><div class="line">  unsigned <span class="keyword">int</span> nget = <span class="number">1</span>;</div><div class="line">  <span class="keyword">if</span>((retval = port_getn(ioevent-&gt;poll_fd, ioevent-&gt;events,</div><div class="line">          ioevent-&gt;size, &amp;nget, &amp;ioevent-&gt;timeout)) == <span class="number">0</span>)</div><div class="line">  &#123;</div><div class="line">    result = (<span class="keyword">int</span>)nget;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">switch</span>(errno) &#123;</div><div class="line">      <span class="keyword">case</span> EINTR:</div><div class="line">      <span class="keyword">case</span> EAGAIN:</div><div class="line">      <span class="keyword">case</span> ETIME:</div><div class="line">        <span class="keyword">if</span> (nget &gt; <span class="number">0</span>) &#123;</div><div class="line">          result = (<span class="keyword">int</span>)nget;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">          result = <span class="number">0</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">      <span class="keyword">default</span>:</div><div class="line">        result = <span class="number">-1</span>;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> result;</div><div class="line"><span class="comment">#else</span></div><div class="line"><span class="comment">#error port me</span></div><div class="line"><span class="comment">#endif</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//add a fd event to ioevent to listen</span></div><div class="line"><span class="comment">// ioevent_attach(&amp;pThread-&gt;ev_puller,sock, event, pTask)</span></div><div class="line"><span class="keyword">int</span> ioevent_attach(IOEventPoller *ioevent, <span class="keyword">const</span> <span class="keyword">int</span> fd, <span class="keyword">const</span> <span class="keyword">int</span> e,</div><div class="line">    void *data)</div><div class="line">&#123;</div><div class="line"><span class="comment">#if IOEVENT_USE_EPOLL</span></div><div class="line">  struct epoll_event ev;</div><div class="line">  memset(&amp;ev, <span class="number">0</span>, sizeof(ev));</div><div class="line">  ev.events = e | ioevent-&gt;extra_events;</div><div class="line">  ev.data.ptr = data;<span class="comment">// 将参数保存到data.ptr中去，依据上面的调用data为IOEventEntry结构类型</span></div><div class="line">  <span class="keyword">return</span> epoll_ctl(ioevent-&gt;poll_fd, EPOLL_CTL_ADD, fd, &amp;ev);</div><div class="line"><span class="comment">#elif IOEVENT_USE_KQUEUE</span></div><div class="line">  struct kevent ev[<span class="number">2</span>];</div><div class="line">  <span class="keyword">int</span> n = <span class="number">0</span>;</div><div class="line">  <span class="keyword">if</span> (e &amp; IOEVENT_READ) &#123;</div><div class="line">    EV_SET(&amp;ev[n++], fd, EVFILT_READ, EV_ADD | ioevent-&gt;extra_events, <span class="number">0</span>, <span class="number">0</span>, data);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span> (e &amp; IOEVENT_WRITE) &#123;</div><div class="line">    EV_SET(&amp;ev[n++], fd, EVFILT_WRITE, EV_ADD | ioevent-&gt;extra_events, <span class="number">0</span>, <span class="number">0</span>, data);</div><div class="line">  &#125;</div><div class="line">  ioevent-&gt;care_events = e;</div><div class="line">  <span class="keyword">return</span> kevent(ioevent-&gt;poll_fd, ev, n, <span class="keyword">NULL</span>, <span class="number">0</span>, <span class="keyword">NULL</span>);</div><div class="line"><span class="comment">#elif IOEVENT_USE_PORT</span></div><div class="line">  <span class="keyword">return</span> port_associate(ioevent-&gt;poll_fd, PORT_SOURCE_FD, fd, e, data);</div><div class="line"><span class="comment">#endif</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 事件处理</span></div><div class="line"><span class="comment">// process the io events by callback function </span></div><div class="line"><span class="comment">// struct epoll_event: http://blog.csdn.net/wangrice2004/article/details/6651320 </span></div><div class="line"><span class="keyword">static</span> void deal_ioevents(IOEventPoller *ioevent)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> event;</div><div class="line">	IOEventEntry *pEntry;</div><div class="line"></div><div class="line">	<span class="keyword">for</span> (ioevent-&gt;iterator.index=<span class="number">0</span>; ioevent-&gt;iterator.index &lt; ioevent-&gt;iterator.</div><div class="line">            count; ioevent-&gt;iterator.index++)</div><div class="line">	&#123;</div><div class="line">		event = IOEVENT_GET_EVENTS(ioevent, ioevent-&gt;iterator.index);</div><div class="line">		pEntry = (IOEventEntry *)IOEVENT_GET_DATA(ioevent, ioevent-&gt;iterator.index);  <span class="comment">// 得到ioevent_attach设置的data，为IOEventEntry类型</span></div><div class="line">		<span class="comment">// pEntry is either IOEventEntry(ioevent_loop -&gt; ioevent_attach)or fast_task_info(ioevent_set-&gt;ioevent_attach)</span></div><div class="line">		<span class="comment">// but the first elem of fast_task_info is also IOEventEntry</span></div><div class="line">		</div><div class="line">        <span class="keyword">if</span> (pEntry != <span class="keyword">NULL</span>)  <span class="comment">// call the callback function, we set data in ioevent_attach func</span></div><div class="line">	&#123;</div><div class="line">            pEntry-&gt;callback(pEntry-&gt;fd, event, pEntry-&gt;timer.data); <span class="comment">// pEntry-&gt;timer.data is fast_task_info(see ioevent_set func)</span></div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> </div><div class="line">		&#123;</div><div class="line">            logDebug(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span></div><div class="line">                    <span class="string">"ignore iovent : %d, index: %d"</span>, <span class="keyword">__LINE__</span>, event, ioevent-&gt;iterator.index);</div><div class="line">        &#125;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/04/fastdfs之事件监听/" class="archive-article-date">
+  	<time datetime="2016-12-04T14:25:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/epoll/">epoll</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2016/12/04/fastdfs之超时事件的处理/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          fastdfs之超时事件的处理
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/12/04/fastdfs之tracker主流程/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">fastdfs之tracker主流程</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs之事件监听" data-title="fastdfs之事件监听" data-url="http://damotiansheng.github.io/2016/12/04/fastdfs之事件监听/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>

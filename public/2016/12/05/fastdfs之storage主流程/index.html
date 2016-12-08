@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+ -->
+
+<head>
+
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>fastdfs之storage主流程 | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="主要工作相关文章1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_">
+<meta property="og:type" content="article">
+<meta property="og:title" content="fastdfs之storage主流程">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/12/05/fastdfs之storage主流程/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="主要工作相关文章1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_">
+<meta property="og:updated_time" content="2016-12-04T09:28:51.202Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="fastdfs之storage主流程">
+<meta name="twitter:description" content="主要工作相关文章1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+<!--  
+ -->
+  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-fastdfs之storage主流程" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      fastdfs之storage主流程
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="主要工作"><a href="#主要工作" class="headerlink" title="主要工作"></a>主要工作</h2><p><a href="http://blog.chinaunix.net/uid-20498361-id-3328762.html" target="_blank" rel="external">相关文章</a><br>1）思想：与tracker主流程一样，采用主线程监听得到fd,dispatch子线程（默认4个工作线程）进行处理；<br>2）创建的线程数：会创建与tracker server数量相等的report thread,用于向tracker server发送相关信息，会创建4个工作线程用于处理任务，会创建一个调度线程，用于执行一些定期任务，如：log_sync_func，fdfs_binlog_sync_func等，还会创建一些IO读写线程，用于读写目录，默认一个目录有一个读线程和一个写线程，线程函数都为dio_thread_entrance函数；<br>3）主要处理过程：主线程往管道写入得到的连接的相关信息（其实是写入一个fast_task_info地址），工作线程会调用storage_recv_notify_read函数得到该地址，然后依据不同的状态进行不同的处理，具体见storage_recv_notify_read函数；<br><a id="more"></a></p>
+<h2 id="相关数据结构"><a href="#相关数据结构" class="headerlink" title="相关数据结构"></a>相关数据结构</h2><figure class="highlight rust"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">nio_thread_data</span></span></div><div class="line">&#123;</div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ioevent_puller</span></span> ev_puller; <span class="comment">//IO multiplexing function: poll, kqueue </span></div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fast_timer</span></span> timer; <span class="comment">// time wheel </span></div><div class="line">	<span class="keyword">int</span> pipe_fds[<span class="number">2</span>]; <span class="comment">//to wake up current thread who owns current nio_thread_data</span></div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">fast_task_info</span></span> *deleted_list;</div><div class="line">	ThreadLoopCallback thread_loop_callback;</div><div class="line">	void *arg;   <span class="comment">//extra argument pointer</span></div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">storage_nio_thread_data</span></span></div><div class="line">&#123;</div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">nio_thread_data</span></span> thread_data;</div><div class="line">	GroupArray group_array;  <span class="comment">//FastDHT group array</span></div><div class="line">&#125;;</div><div class="line">每个工作线程对应一个storage_nio_thread_data结构</div></pre></td></tr></table></figure>
+<h2 id="相关代码"><a href="#相关代码" class="headerlink" title="相关代码"></a>相关代码</h2><figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div><div class="line">269</div><div class="line">270</div><div class="line">271</div><div class="line">272</div><div class="line">273</div><div class="line">274</div><div class="line">275</div><div class="line">276</div><div class="line">277</div><div class="line">278</div><div class="line">279</div><div class="line">280</div><div class="line">281</div><div class="line">282</div><div class="line">283</div><div class="line">284</div><div class="line">285</div><div class="line">286</div><div class="line">287</div><div class="line">288</div><div class="line">289</div><div class="line">290</div><div class="line">291</div><div class="line">292</div><div class="line">293</div><div class="line">294</div><div class="line">295</div><div class="line">296</div><div class="line">297</div><div class="line">298</div><div class="line">299</div><div class="line">300</div><div class="line">301</div><div class="line">302</div><div class="line">303</div><div class="line">304</div><div class="line">305</div><div class="line">306</div><div class="line">307</div><div class="line">308</div><div class="line">309</div><div class="line">310</div><div class="line">311</div><div class="line">312</div><div class="line">313</div><div class="line">314</div><div class="line">315</div><div class="line">316</div><div class="line">317</div><div class="line">318</div><div class="line">319</div><div class="line">320</div><div class="line">321</div><div class="line">322</div><div class="line">323</div><div class="line">324</div><div class="line">325</div><div class="line">326</div><div class="line">327</div><div class="line">328</div><div class="line">329</div><div class="line">330</div><div class="line">331</div><div class="line">332</div><div class="line">333</div><div class="line">334</div><div class="line">335</div><div class="line">336</div><div class="line">337</div><div class="line">338</div><div class="line">339</div><div class="line">340</div><div class="line">341</div><div class="line">342</div><div class="line">343</div><div class="line">344</div><div class="line">345</div><div class="line">346</div><div class="line">347</div><div class="line">348</div><div class="line">349</div><div class="line">350</div><div class="line">351</div><div class="line">352</div><div class="line">353</div><div class="line">354</div><div class="line">355</div><div class="line">356</div><div class="line">357</div><div class="line">358</div><div class="line">359</div><div class="line">360</div><div class="line">361</div><div class="line">362</div><div class="line">363</div><div class="line">364</div><div class="line">365</div><div class="line">366</div><div class="line">367</div><div class="line">368</div><div class="line">369</div><div class="line">370</div><div class="line">371</div><div class="line">372</div><div class="line">373</div><div class="line">374</div><div class="line">375</div><div class="line">376</div><div class="line">377</div><div class="line">378</div><div class="line">379</div><div class="line">380</div><div class="line">381</div><div class="line">382</div><div class="line">383</div><div class="line">384</div><div class="line">385</div><div class="line">386</div><div class="line">387</div><div class="line">388</div><div class="line">389</div><div class="line">390</div><div class="line">391</div><div class="line">392</div><div class="line">393</div><div class="line">394</div><div class="line">395</div><div class="line">396</div><div class="line">397</div><div class="line">398</div><div class="line">399</div><div class="line">400</div><div class="line">401</div><div class="line">402</div><div class="line">403</div><div class="line">404</div><div class="line">405</div><div class="line">406</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// fdfs_storaged.c-&gt;main函数</span></div><div class="line">int main(int argc, char *argv[])</div><div class="line">&#123;</div><div class="line">	char *conf_filename;</div><div class="line">	int result;</div><div class="line">	int sock;</div><div class="line">	int wait_count;</div><div class="line">	pthread_t schedule_tid;</div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sigaction</span> <span class="title">act</span>;</span></div><div class="line">	<span class="title">ScheduleEntry</span> <span class="title">scheduleEntries</span>[<span class="title">SCHEDULE_ENTRIES_MAX_COUNT</span>];</div><div class="line">	<span class="title">ScheduleArray</span> <span class="title">scheduleArray</span>;</div><div class="line">	<span class="title">char</span> <span class="title">pidFilename</span>[<span class="title">MAX_PATH_SIZE</span>];</div><div class="line">	<span class="title">bool</span> <span class="title">stop</span>;</div><div class="line"></div><div class="line">	<span class="title">if</span> (<span class="title">argc</span> &lt; 2)</div><div class="line">	&#123;</div><div class="line">		usage(argv[<span class="number">0</span>]);</div><div class="line">		<span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	g_current_time = time(<span class="type">NULL</span>);</div><div class="line">	g_up_time = g_current_time;</div><div class="line"></div><div class="line">	log_init2();  <span class="comment">//init the log system</span></div><div class="line">	trunk_shared_init(); <span class="comment">// init the g_fdfs_base64_context global variable</span></div><div class="line"></div><div class="line">	conf_filename = argv[<span class="number">1</span>];</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=get_base_path_from_conf_file(conf_filename,</div><div class="line">		g_fdfs_base_path, <span class="built_in">sizeof</span>(g_fdfs_base_path))) != <span class="number">0</span>) <span class="comment">// get base path from conf_filename</span></div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	snprintf(pidFilename, <span class="built_in">sizeof</span>(pidFilename),</div><div class="line">		<span class="string">"%s/data/fdfs_storaged.pid"</span>, g_fdfs_base_path);</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=process_action(pidFilename, argv[<span class="number">2</span>], &amp;stop)) != <span class="number">0</span>)<span class="comment">// process command: restart/stop/start</span></div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> (result == <span class="type">EINVAL</span>)</div><div class="line">		&#123;</div><div class="line">			usage(argv[<span class="number">0</span>]);</div><div class="line">		&#125;</div><div class="line">		</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (stop)</div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">#<span class="keyword">if</span> defined(<span class="type">DEBUG_FLAG</span>) &amp;&amp; defined(<span class="type">OS_LINUX</span>)</div><div class="line">	<span class="keyword">if</span> (getExeAbsoluteFilename(argv[<span class="number">0</span>], g_exe_name, \</div><div class="line">		<span class="built_in">sizeof</span>(g_exe_name)) == <span class="type">NULL</span>) <span class="comment">//get the absolute path of exe file saved to g_exe_name</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> errno != <span class="number">0</span> ? errno : <span class="type">ENOENT</span>;</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line"></div><div class="line">	daemon_init(<span class="literal">false</span>); <span class="comment">// set to daemon mode </span></div><div class="line">	umask(<span class="number">0</span>);</div><div class="line"></div><div class="line">	memset(g_bind_addr, <span class="number">0</span>, <span class="built_in">sizeof</span>(g_bind_addr));</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=storage_func_init(conf_filename, \</div><div class="line">			g_bind_addr, <span class="built_in">sizeof</span>(g_bind_addr))) != <span class="number">0</span>) <span class="comment">// parse the conf_filename and get some values saved to global variable</span></div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">//*g_bind_addr = '\0', g_server_port=23000</span></div><div class="line">	<span class="comment">// socketServer to finish socket, bind, listen</span></div><div class="line">	sock = socketServer(g_bind_addr, g_server_port, &amp;result);</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (sock &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="comment">// tcpsetserveropt: set send/recv timeout and keepalive parameter</span></div><div class="line">	<span class="keyword">if</span> ((result=tcpsetserveropt(sock, g_fdfs_network_timeout)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=write_to_pid_file(pidFilename)) != <span class="number">0</span>) </div><div class="line">	&#123;</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line"></div><div class="line">    <span class="comment">// create base_path and the sync path, create file: binlog.000(default), init the sync_thread_lock </span></div><div class="line">	<span class="keyword">if</span> ((result=storage_sync_init()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"storage_sync_init fail, program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		g_continue_flag = <span class="literal">false</span>;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// init the lock of reporter_thread_lock, clear g_storage_servers and g_sorted_storages</span></div><div class="line">	<span class="keyword">if</span> ((result=tracker_report_init()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"tracker_report_init fail, program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		g_continue_flag = <span class="literal">false</span>;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">    <span class="comment">//create 4 work thread default, init some lock, build a task object(fast_task_info) pool(g_free_queue)</span></div><div class="line">	<span class="keyword">if</span> ((result=storage_service_init()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"storage_service_init fail, program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		g_continue_flag = <span class="literal">false</span>;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">    <span class="comment">// init the rand generator</span></div><div class="line">	<span class="keyword">if</span> ((result=set_rand_seed()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"set_rand_seed fail, program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		g_continue_flag = <span class="literal">false</span>;</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	memset(&amp;act, <span class="number">0</span>, <span class="built_in">sizeof</span>(act));</div><div class="line">	sigemptyset(&amp;act.sa_mask);</div><div class="line"></div><div class="line">	act.sa_handler = sigUsrHandler; <span class="comment">// sigUsrHandler do nothing</span></div><div class="line">	</div><div class="line">	<span class="keyword">if</span>(sigaction(<span class="type">SIGUSR1</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(<span class="type">SIGUSR2</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, errno, <span class="type">STRERROR</span>(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	act.sa_handler = sigHupHandler; <span class="comment">// set g_log_context.rotate_immediately to true</span></div><div class="line">	</div><div class="line">	<span class="keyword">if</span>(sigaction(<span class="type">SIGHUP</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, errno, <span class="type">STRERROR</span>(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	act.sa_handler = <span class="type">SIG_IGN</span>;</div><div class="line">	<span class="keyword">if</span>(sigaction(<span class="type">SIGPIPE</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, errno, <span class="type">STRERROR</span>(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	act.sa_handler = sigQuitHandler;</div><div class="line">	<span class="keyword">if</span>(sigaction(<span class="type">SIGINT</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(<span class="type">SIGTERM</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(<span class="type">SIGQUIT</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, errno, <span class="type">STRERROR</span>(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">#<span class="keyword">if</span> defined(<span class="type">DEBUG_FLAG</span>)</div><div class="line"></div><div class="line"><span class="comment">/*</span></div><div class="line">#if defined(OS_LINUX)</div><div class="line">	memset(&amp;act, 0, sizeof(act));</div><div class="line">        act.sa_sigaction = sigSegvHandler;</div><div class="line">        act.sa_flags = SA_SIGINFO;</div><div class="line">        if (sigaction(SIGSEGV, &amp;act, NULL) &lt; 0 || \</div><div class="line">        	sigaction(SIGABRT, &amp;act, NULL) &lt; 0)</div><div class="line">	&#123;</div><div class="line">		logCrit("file: "__FILE__", line: %d, " \</div><div class="line">			"call sigaction fail, errno: %d, error info: %s", \</div><div class="line">			__LINE__, errno, STRERROR(errno));</div><div class="line">		logCrit("exit abnormally!\n");</div><div class="line">		return errno;</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line">*/</div><div class="line"></div><div class="line">	memset(&amp;act, <span class="number">0</span>, <span class="built_in">sizeof</span>(act));</div><div class="line">	sigemptyset(&amp;act.sa_mask);</div><div class="line">	act.sa_handler = sigDumpHandler;</div><div class="line">	<span class="keyword">if</span>(sigaction(<span class="type">SIGUSR1</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span> || \</div><div class="line">		sigaction(<span class="type">SIGUSR2</span>, &amp;act, <span class="type">NULL</span>) &lt; <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call sigaction fail, errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, errno, <span class="type">STRERROR</span>(errno));</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		<span class="keyword">return</span> errno;</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line"></div><div class="line">#ifdef <span class="type">WITH_HTTPD</span></div><div class="line">	<span class="keyword">if</span> (!g_http_params.disabled)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> ((result=storage_httpd_start(g_bind_addr)) != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"storage_httpd_start fail, "</span> \</div><div class="line">				<span class="string">"program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">			<span class="keyword">return</span> result;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">#endif</div><div class="line"></div><div class="line">     <span class="comment">// create some child thread, a thread conrresoponds to one tracker server</span></div><div class="line">	<span class="keyword">if</span> ((result=tracker_report_thread_start()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"tracker_report_thread_start fail, "</span> \</div><div class="line">			<span class="string">"program exit!"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">		g_continue_flag = <span class="literal">false</span>;</div><div class="line">		storage_func_destroy();</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	scheduleArray.entries = scheduleEntries;</div><div class="line">	scheduleArray.<span class="built_in">count</span> = <span class="number">0</span>;</div><div class="line">	memset(scheduleEntries, <span class="number">0</span>, <span class="built_in">sizeof</span>(scheduleEntries));</div><div class="line"></div><div class="line">	<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">		scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>,</div><div class="line">		g_sync_log_buff_interval, log_sync_func, &amp;g_log_context);</div><div class="line">	scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">	<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">		scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>,</div><div class="line">		g_sync_binlog_buff_interval, fdfs_binlog_sync_func, <span class="type">NULL</span>);</div><div class="line">	scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">	<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">		scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>,</div><div class="line">		g_sync_stat_file_interval, fdfs_stat_file_sync_func, <span class="type">NULL</span>);</div><div class="line">	scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_if_use_trunk_file)</div><div class="line">	&#123;</div><div class="line">		<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">			scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>,</div><div class="line">			<span class="number">1</span>, trunk_binlog_sync_func, <span class="type">NULL</span>);</div><div class="line">		scheduleArray.<span class="built_in">count</span>++;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_use_access_log)</div><div class="line">	&#123;</div><div class="line">		<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">			scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>, <span class="type">TIME_NONE</span>,</div><div class="line">			g_sync_log_buff_interval, log_sync_func, &amp;g_access_log_context);</div><div class="line">		scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (g_rotate_access_log)</div><div class="line">		&#123;</div><div class="line">			<span class="type">INIT_SCHEDULE_ENTRY_EX</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">				scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, g_access_log_rotate_time,</div><div class="line">				<span class="number">24</span> * <span class="number">3600</span>, log_notify_rotate, &amp;g_access_log_context);</div><div class="line">			scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">			<span class="keyword">if</span> (g_log_file_keep_days &gt; <span class="number">0</span>)</div><div class="line">			&#123;</div><div class="line">				log_set_keep_days(&amp;g_access_log_context,</div><div class="line">					g_log_file_keep_days);</div><div class="line"></div><div class="line">				<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">					scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">24</span> * <span class="number">3600</span>,</div><div class="line">					log_delete_old_files, &amp;g_access_log_context);</div><div class="line">				scheduleArray.<span class="built_in">count</span>++;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_rotate_error_log)</div><div class="line">	&#123;</div><div class="line">		<span class="type">INIT_SCHEDULE_ENTRY_EX</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">			scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, g_error_log_rotate_time,</div><div class="line">			<span class="number">24</span> * <span class="number">3600</span>, log_notify_rotate, &amp;g_log_context);</div><div class="line">		scheduleArray.<span class="built_in">count</span>++;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (g_log_file_keep_days &gt; <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			log_set_keep_days(&amp;g_log_context, g_log_file_keep_days);</div><div class="line"></div><div class="line">			<span class="type">INIT_SCHEDULE_ENTRY</span>(scheduleEntries[scheduleArray.<span class="built_in">count</span>],</div><div class="line">				scheduleArray.<span class="built_in">count</span> + <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">24</span> * <span class="number">3600</span>,</div><div class="line">				log_delete_old_files, &amp;g_log_context);</div><div class="line">			scheduleArray.<span class="built_in">count</span>++;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">     <span class="comment">// create a thread to schedule log_sync_func,fdfs_stat_file_sync_func and so on</span></div><div class="line">	<span class="keyword">if</span> ((result=sched_start(&amp;scheduleArray, &amp;schedule_tid, \</div><div class="line">		g_thread_stack_size, (bool * volatile)&amp;g_continue_flag)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">     <span class="comment">// set current group and user of current process</span></div><div class="line">	<span class="keyword">if</span> ((result=set_run_by(g_run_by_group, g_run_by_user)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">    <span class="comment">// create read and write thread: dio_thread_entrance for every store_path,</span></div><div class="line">    <span class="comment">// one path has a read thread and a write thread default</span></div><div class="line">	<span class="keyword">if</span> ((result=storage_dio_init()) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logCrit(<span class="string">"exit abnormally!\n"</span>);</div><div class="line">		log_destroy();</div><div class="line">		<span class="keyword">return</span> result;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	log_set_cache(<span class="literal">true</span>); <span class="comment">// set g_log_context.log_to_cache to true</span></div><div class="line"></div><div class="line">	bTerminateFlag = <span class="literal">false</span>;</div><div class="line">	bAcceptEndFlag = <span class="literal">false</span>;</div><div class="line">	</div><div class="line">	storage_accept_loop(sock); <span class="comment">// enter main thread loop, accept to get fd, and wakeup child thread to process</span></div><div class="line">	bAcceptEndFlag = <span class="literal">true</span>;</div><div class="line"></div><div class="line">	fdfs_binlog_sync_func(<span class="type">NULL</span>);  <span class="comment">//binlog fsync</span></div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_schedule_flag)</div><div class="line">	&#123;</div><div class="line">		pthread_kill(schedule_tid, <span class="type">SIGINT</span>);</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	storage_terminate_threads();  <span class="comment">// wakeup work thread to quit</span></div><div class="line">	storage_dio_terminate();      <span class="comment">// terminate the io thread</span></div><div class="line"></div><div class="line">	kill_tracker_report_threads(); <span class="comment">// kill report thread</span></div><div class="line">	kill_storage_sync_threads();</div><div class="line"></div><div class="line">	wait_count = <span class="number">0</span>;</div><div class="line">	<span class="keyword">while</span> (g_storage_thread_count != <span class="number">0</span> || \</div><div class="line">		g_dio_thread_count != <span class="number">0</span> || \</div><div class="line">		g_tracker_reporter_count &gt; <span class="number">0</span> || \</div><div class="line">		g_schedule_flag)</div><div class="line">	&#123;</div><div class="line"><span class="comment">/*</span></div><div class="line">#if defined(DEBUG_FLAG) &amp;&amp; defined(OS_LINUX)</div><div class="line">		if (bSegmentFault)</div><div class="line">		&#123;</div><div class="line">			sleep(5);</div><div class="line">			break;</div><div class="line">		&#125;</div><div class="line">#endif</div><div class="line">*/</div><div class="line"></div><div class="line">		usleep(<span class="number">10000</span>);</div><div class="line">		<span class="keyword">if</span> (++wait_count &gt; <span class="number">6000</span>)</div><div class="line">		&#123;</div><div class="line">			logWarning(<span class="string">"waiting timeout, exit!"</span>);</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	tracker_report_destroy();</div><div class="line">	storage_service_destroy();</div><div class="line">	storage_sync_destroy();</div><div class="line">	storage_func_destroy();</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_if_use_trunk_file)</div><div class="line">	&#123;</div><div class="line">		trunk_sync_destroy();</div><div class="line">		storage_trunk_destroy();</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	logInfo(<span class="string">"exit normally.\n"</span>);</div><div class="line">	log_destroy();</div><div class="line">	</div><div class="line">	delete_pid_file(pidFilename);</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div><div class="line">158</div><div class="line">159</div><div class="line">160</div><div class="line">161</div><div class="line">162</div><div class="line">163</div><div class="line">164</div><div class="line">165</div><div class="line">166</div><div class="line">167</div><div class="line">168</div><div class="line">169</div><div class="line">170</div><div class="line">171</div><div class="line">172</div><div class="line">173</div><div class="line">174</div><div class="line">175</div><div class="line">176</div><div class="line">177</div><div class="line">178</div><div class="line">179</div><div class="line">180</div><div class="line">181</div><div class="line">182</div><div class="line">183</div><div class="line">184</div><div class="line">185</div><div class="line">186</div><div class="line">187</div><div class="line">188</div><div class="line">189</div><div class="line">190</div><div class="line">191</div><div class="line">192</div><div class="line">193</div><div class="line">194</div><div class="line">195</div><div class="line">196</div><div class="line">197</div><div class="line">198</div><div class="line">199</div><div class="line">200</div><div class="line">201</div><div class="line">202</div><div class="line">203</div><div class="line">204</div><div class="line">205</div><div class="line">206</div><div class="line">207</div><div class="line">208</div><div class="line">209</div><div class="line">210</div><div class="line">211</div><div class="line">212</div><div class="line">213</div><div class="line">214</div><div class="line">215</div><div class="line">216</div><div class="line">217</div><div class="line">218</div><div class="line">219</div><div class="line">220</div><div class="line">221</div><div class="line">222</div><div class="line">223</div><div class="line">224</div><div class="line">225</div><div class="line">226</div><div class="line">227</div><div class="line">228</div><div class="line">229</div><div class="line">230</div><div class="line">231</div><div class="line">232</div><div class="line">233</div><div class="line">234</div><div class="line">235</div><div class="line">236</div><div class="line">237</div><div class="line">238</div><div class="line">239</div><div class="line">240</div><div class="line">241</div><div class="line">242</div><div class="line">243</div><div class="line">244</div><div class="line">245</div><div class="line">246</div><div class="line">247</div><div class="line">248</div><div class="line">249</div><div class="line">250</div><div class="line">251</div><div class="line">252</div><div class="line">253</div><div class="line">254</div><div class="line">255</div><div class="line">256</div><div class="line">257</div><div class="line">258</div><div class="line">259</div><div class="line">260</div><div class="line">261</div><div class="line">262</div><div class="line">263</div><div class="line">264</div><div class="line">265</div><div class="line">266</div><div class="line">267</div><div class="line">268</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 主线程函数</span></div><div class="line"><span class="comment">// storage server main thread, accept to get the fd, save some info, and write the address of (struct fast_task_info),</span></div><div class="line"><span class="comment">// it contains the fd</span></div><div class="line"><span class="keyword">static</span> void *accept_thread_entrance(void* arg)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> server_sock;</div><div class="line">	<span class="keyword">int</span> incomesock;</div><div class="line">	struct sockaddr_in inaddr;</div><div class="line">	socklen_t sockaddr_len;</div><div class="line">	in_addr_t client_addr;</div><div class="line">	<span class="keyword">char</span> szClientIp[IP_ADDRESS_SIZE];</div><div class="line">	<span class="keyword">long</span> task_addr;</div><div class="line">	struct fast_task_info *pTask;</div><div class="line">	StorageClientInfo *pClientInfo;</div><div class="line">	struct storage_nio_thread_data *pThreadData;</div><div class="line"></div><div class="line">	server_sock = (<span class="keyword">long</span>)arg;</div><div class="line">	</div><div class="line">	<span class="keyword">while</span> (g_continue_flag)</div><div class="line">	&#123;</div><div class="line">		sockaddr_len = sizeof(inaddr);</div><div class="line">		incomesock = accept(server_sock, (struct sockaddr*)&amp;inaddr, \</div><div class="line">					&amp;sockaddr_len);</div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (incomesock &lt; <span class="number">0</span>) <span class="comment">//error</span></div><div class="line">		&#123;</div><div class="line">			<span class="keyword">if</span> (!(errno == EINTR || errno == EAGAIN))</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"accept failed, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, errno, STRERROR(errno));</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		client_addr = getPeerIpaddr(incomesock, \</div><div class="line">				szClientIp, IP_ADDRESS_SIZE);</div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (g_allow_ip_count &gt;= <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">if</span> (bsearch(&amp;client_addr, g_allow_ip_addrs, \</div><div class="line">					g_allow_ip_count, sizeof(in_addr_t), \</div><div class="line">					cmp_by_ip_addr_t) == <span class="keyword">NULL</span>)</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"ip addr %s is not allowed to access"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, szClientIp);</div><div class="line"></div><div class="line">				close(incomesock);</div><div class="line">				<span class="keyword">continue</span>;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">        <span class="comment">// set non block for fd</span></div><div class="line">		<span class="keyword">if</span> (tcpsetnonblockopt(incomesock) != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			close(incomesock);</div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		pTask = free_queue_pop(); <span class="comment">// get a free task object from free task object pool(g_free_queue)</span></div><div class="line">		</div><div class="line">		<span class="keyword">if</span> (pTask == <span class="keyword">NULL</span>)</div><div class="line">		&#123;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"malloc task buff failed"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>);</div><div class="line">			close(incomesock);</div><div class="line">			<span class="keyword">continue</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		pClientInfo = (StorageClientInfo *)pTask-&gt;arg; <span class="comment">// pTask-&gt;arg is pointer to (StorageClientInfo *), see storage_service_init-&gt;free_queue_init_ex func</span></div><div class="line">		pTask-&gt;event.fd = incomesock;</div><div class="line">		pClientInfo-&gt;stage = FDFS_STORAGE_STAGE_NIO_INIT; <span class="comment">//will be used in storage_recv_notify_read function</span></div><div class="line">		pClientInfo-&gt;nio_thread_index = pTask-&gt;event.fd % g_work_threads;</div><div class="line">		pThreadData = g_nio_thread_data + pClientInfo-&gt;nio_thread_index;</div><div class="line"></div><div class="line">		strcpy(pTask-&gt;client_ip, szClientIp);</div><div class="line"></div><div class="line">		task_addr = (<span class="keyword">long</span>)pTask; <span class="comment">// convert address to long, and write the long</span></div><div class="line">		<span class="keyword">if</span> (write(pThreadData-&gt;thread_data.pipe_fds[<span class="number">1</span>], &amp;task_addr, \</div><div class="line">			sizeof(task_addr)) != sizeof(task_addr))</div><div class="line">		&#123;</div><div class="line">			close(incomesock);</div><div class="line">			free_queue_push(pTask);</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"call write failed, "</span> \</div><div class="line">				<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">				<span class="keyword">__LINE__</span>, errno, STRERROR(errno));</div><div class="line">		&#125;</div><div class="line">        <span class="keyword">else</span></div><div class="line">        &#123;</div><div class="line">            <span class="keyword">int</span> current_connections;</div><div class="line">            current_connections = __sync_add_and_fetch(&amp;g_storage_stat.connection.</div><div class="line">                    current_count, <span class="number">1</span>);</div><div class="line">			</div><div class="line">            <span class="keyword">if</span> (current_connections &gt; g_storage_stat.connection.max_count) </div><div class="line">			&#123;</div><div class="line">                g_storage_stat.connection.max_count = current_connections;</div><div class="line">            &#125;</div><div class="line">			</div><div class="line">            ++g_stat_change_count;</div><div class="line">        &#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="keyword">NULL</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//工作线程函数</span></div><div class="line"><span class="comment">// default is 4 threads to call work_thread_entrance</span></div><div class="line"><span class="keyword">static</span> void *work_thread_entrance(void* arg)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> result;</div><div class="line">	struct storage_nio_thread_data *pThreadData;</div><div class="line"></div><div class="line">	pThreadData = (struct storage_nio_thread_data *)arg;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> (g_check_file_duplicate) <span class="comment">// check duplicate, here just leave it</span></div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> ((result=fdht_copy_group_array(&amp;(pThreadData-&gt;group_array),\</div><div class="line">				&amp;g_group_array)) != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			pthread_mutex_lock(&amp;g_storage_thread_lock);</div><div class="line">			g_storage_thread_count--;</div><div class="line">			pthread_mutex_unlock(&amp;g_storage_thread_lock);</div><div class="line">			<span class="keyword">return</span> <span class="keyword">NULL</span>;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	ioevent_loop(&amp;pThreadData-&gt;thread_data, storage_recv_notify_read,</div><div class="line">		task_finish_clean_up, &amp;g_continue_flag);  <span class="comment">// epoll wait to listen</span></div><div class="line"></div><div class="line">	<span class="comment">// free free(ioevent-&gt;events) and close(ioevent-&gt;poll_fd) </span></div><div class="line">	ioevent_destroy(&amp;pThreadData-&gt;thread_data.ev_puller);</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (g_check_file_duplicate)</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span> (g_keep_alive)</div><div class="line">		&#123;</div><div class="line">			fdht_disconnect_all_servers(&amp;(pThreadData-&gt;group_array));</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		fdht_free_group_array(&amp;(pThreadData-&gt;group_array));</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> ((result=pthread_mutex_lock(&amp;g_storage_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">			<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">	&#125;</div><div class="line">	</div><div class="line">	g_storage_thread_count--;</div><div class="line">	</div><div class="line">	<span class="keyword">if</span> ((result=pthread_mutex_unlock(&amp;g_storage_thread_lock)) != <span class="number">0</span>)</div><div class="line">	&#123;</div><div class="line">		logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">			<span class="string">"call pthread_mutex_lock fail, "</span> \</div><div class="line">			<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">			<span class="keyword">__LINE__</span>, result, STRERROR(result));</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	logDebug(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">		<span class="string">"nio thread exited, thread count: %d"</span>, \</div><div class="line">		<span class="keyword">__LINE__</span>, g_storage_thread_count);</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="keyword">NULL</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void storage_recv_notify_read(<span class="keyword">int</span> sock, short event, void *arg)</div><div class="line">&#123;</div><div class="line">	struct fast_task_info *pTask;</div><div class="line">	StorageClientInfo *pClientInfo;</div><div class="line">	<span class="keyword">long</span> task_addr;</div><div class="line">	int64_t remain_bytes;</div><div class="line">	<span class="keyword">int</span> bytes;</div><div class="line">	<span class="keyword">int</span> result;</div><div class="line"></div><div class="line">	<span class="keyword">while</span> (<span class="number">1</span>)</div><div class="line">	&#123;         <span class="comment">// read a address of buffer, it is the address of (struct fast_task_info), see accept_thread_entrance func</span></div><div class="line">		<span class="keyword">if</span> ((bytes=read(sock, &amp;task_addr, sizeof(task_addr))) &lt; <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">if</span> (!(errno == EAGAIN || errno == EWOULDBLOCK))</div><div class="line">			&#123;</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"call read failed, "</span> \</div><div class="line">					<span class="string">"errno: %d, error info: %s"</span>, \</div><div class="line">					<span class="keyword">__LINE__</span>, errno, STRERROR(errno));</div><div class="line">			&#125;</div><div class="line"></div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (bytes == <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">				<span class="string">"call read failed, end of file"</span>, <span class="keyword">__LINE__</span>);</div><div class="line">			<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		pTask = (struct fast_task_info *)task_addr; </div><div class="line">		pClientInfo = (StorageClientInfo *)pTask-&gt;arg;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (pTask-&gt;event.fd &lt; <span class="number">0</span>)  <span class="comment">//quit flag</span></div><div class="line">		&#123;</div><div class="line">			<span class="keyword">return</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="comment">/* //logInfo("=====thread index: %d, pTask-&gt;event.fd=%d", \</span></div><div class="line">			pClientInfo-&gt;nio_thread_index, pTask-&gt;event.fd);</div><div class="line">		*/</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (pClientInfo-&gt;stage &amp; FDFS_STORAGE_STAGE_DIO_THREAD)</div><div class="line">		&#123;</div><div class="line">			pClientInfo-&gt;stage &amp;= ~FDFS_STORAGE_STAGE_DIO_THREAD;</div><div class="line">		&#125;</div><div class="line">		</div><div class="line">		<span class="keyword">switch</span> (pClientInfo-&gt;stage)</div><div class="line">		&#123;</div><div class="line">			<span class="keyword">case</span> FDFS_STORAGE_STAGE_NIO_INIT:</div><div class="line">				result = storage_nio_init(pTask);</div><div class="line">				<span class="keyword">break</span>;</div><div class="line">				</div><div class="line">			<span class="keyword">case</span> FDFS_STORAGE_STAGE_NIO_RECV:</div><div class="line">				pTask-&gt;offset = <span class="number">0</span>;</div><div class="line">				remain_bytes = pClientInfo-&gt;total_length - \</div><div class="line">					       pClientInfo-&gt;total_offset;</div><div class="line">				</div><div class="line">				<span class="keyword">if</span> (remain_bytes &gt; pTask-&gt;size)</div><div class="line">				&#123;</div><div class="line">					pTask-&gt;length = pTask-&gt;size;</div><div class="line">				&#125;</div><div class="line">				<span class="keyword">else</span></div><div class="line">				&#123;</div><div class="line">					pTask-&gt;length = remain_bytes;</div><div class="line">				&#125;</div><div class="line"></div><div class="line">				<span class="keyword">if</span> (set_recv_event(pTask) == <span class="number">0</span>)</div><div class="line">				&#123;</div><div class="line">					client_sock_read(pTask-&gt;event.fd,</div><div class="line">						IOEVENT_READ, pTask);</div><div class="line">				&#125;</div><div class="line">				</div><div class="line">				result = <span class="number">0</span>;</div><div class="line">				<span class="keyword">break</span>;</div><div class="line">				</div><div class="line">			<span class="keyword">case</span> FDFS_STORAGE_STAGE_NIO_SEND:</div><div class="line">				result = storage_send_add_event(pTask);</div><div class="line">				<span class="keyword">break</span>;</div><div class="line">			<span class="keyword">case</span> FDFS_STORAGE_STAGE_NIO_CLOSE:</div><div class="line">				result = EIO;   <span class="comment">//close this socket</span></div><div class="line">				<span class="keyword">break</span>;</div><div class="line">			<span class="keyword">default</span>:</div><div class="line">				logError(<span class="string">"file: "</span><span class="keyword">__FILE__</span><span class="string">", line: %d, "</span> \</div><div class="line">					<span class="string">"invalid stage: %d"</span>, <span class="keyword">__LINE__</span>, \</div><div class="line">					pClientInfo-&gt;stage);</div><div class="line">				result = EINVAL;</div><div class="line">				<span class="keyword">break</span>;</div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="keyword">if</span> (result != <span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			add_to_deleted_list(pTask);</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/12/05/fastdfs之storage主流程/" class="archive-article-date">
+  	<time datetime="2016-12-04T17:08:51.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-12-04</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/fastdfs/">fastdfs</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+  
+    <a href="/2016/12/04/fastdfs之超时事件的处理/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">fastdfs之超时事件的处理</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="fastdfs之storage主流程" data-title="fastdfs之storage主流程" data-url="http://damotiansheng.github.io/2016/12/05/fastdfs之storage主流程/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<!-- 
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+ -->
+
+<head>
+
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" >
+  <title>多个线程监听同一个fd | damotiansheng的博客</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="多个线程监听同一个fd测试环境ubantu 12.04 x64
+目的多个线程监听同一fd,看看是否会出现问题，连接到来时，是否每个线程都会被唤醒，还是只唤醒一个，每个线程被唤醒的次数是否会相等。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多个线程监听同一个fd">
+<meta property="og:url" content="http://damotiansheng.github.io/2016/11/28/多个线程监听同一个fd/index.html">
+<meta property="og:site_name" content="damotiansheng的博客">
+<meta property="og:description" content="多个线程监听同一个fd测试环境ubantu 12.04 x64
+目的多个线程监听同一fd,看看是否会出现问题，连接到来时，是否每个线程都会被唤醒，还是只唤醒一个，每个线程被唤醒的次数是否会相等。">
+<meta property="og:updated_time" content="2016-12-04T04:56:49.270Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="多个线程监听同一个fd">
+<meta name="twitter:description" content="多个线程监听同一个fd测试环境ubantu 12.04 x64
+目的多个线程监听同一fd,看看是否会出现问题，连接到来时，是否每个线程都会被唤醒，还是只唤醒一个，每个线程被唤醒的次数是否会相等。">
+  
+    <link rel="alternative" href="/atom.xml" title="damotiansheng的博客" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="//favicon.png">
+  
+  <script src="/style.js"></script>
+<!--  
+ -->
+  
+<script type="text/javascript">
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?1293218f9c2c558a57e4d5807dcc773c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+
+</head>
+
+<body>
+  <div id="container">
+    <div class="left-col">
+      <div class="overlay"></div>
+<div class="intrude-less">
+	<header id="header" class="inner">
+		<a href="/" class="profilepic">
+			
+			<img src="/photos/damotiansheng.png" class="js-avatar">
+			
+		</a>
+
+		<hgroup>
+		  <h1 class="header-author"><a href="/">damotiansheng</a></h1>
+		</hgroup>
+
+		
+		<p class="header-subtitle">个人站</p>
+		
+
+		<nav class="header-menu">
+			<ul>
+			
+				<li><a href="/">主页</a></li>
+	        
+				<li><a href="/categories">分类</a></li>
+	        
+				<li><a href="/photos/damotiansheng.png">相册</a></li>
+	        
+			</ul>
+		</nav>
+		<nav class="header-smart-menu">
+	        
+    		
+    			
+    			<a class="js-smart-menu" data-idx="0" href="javascript:void(0)">所有文章</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="1" href="javascript:void(0)">标签</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="2" href="javascript:void(0)">友链</a>
+    			
+    			
+            
+    			
+    			<a class="js-smart-menu" data-idx="3" href="javascript:void(0)">关于我</a>
+    			
+    			
+            
+		</nav>
+		<nav class="header-nav">
+			<div class="social">
+				
+					<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+		        
+					<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+		        
+					<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+		        
+					<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+		        
+					<a class="mail" target="_blank" href="#" title="mail">mail</a>
+		        
+			</div>
+		</nav>
+	</header>		
+</div>
+
+    </div>
+    <div class="mid-col">
+      <nav id="mobile-nav">
+  	<div class="overlay">
+  		<div class="slider-trigger"><i class="icon-list"></i></div>
+  		<h1 class="header-author js-mobile-header hide">damotiansheng</h1>
+  	</div>
+	<div class="intrude-less">
+		<header id="header" class="inner">
+			<div class="profilepic">
+				
+					<img src="/photos/damotiansheng.png" class="js-avatar">
+				
+			</div>
+			<hgroup>
+			  <h1 class="header-author">damotiansheng</h1>
+			</hgroup>
+			
+			<p class="header-subtitle">个人站</p>
+			
+			<nav class="header-menu">
+				<ul>
+				
+					<li><a href="/">主页</a></li>
+		        
+					<li><a href="/categories">分类</a></li>
+		        
+					<li><a href="/photos/damotiansheng.png">相册</a></li>
+		        
+				</ul>
+			</nav>
+			<nav class="header-nav">
+				<div class="social">
+					
+						<a class="github" target="_blank" href="https://github.com/damotiansheng" title="github">github</a>
+			        
+						<a class="weibo" target="_blank" href="#" title="weibo">weibo</a>
+			        
+						<a class="zhihu" target="_blank" href="#" title="zhihu">zhihu</a>
+			        
+						<a class="douban" target="_blank" href="https://www.douban.com/people/wwwzqbxcom/" title="douban">douban</a>
+			        
+						<a class="mail" target="_blank" href="#" title="mail">mail</a>
+			        
+				</div>
+			</nav>
+		</header>				
+	</div>
+</nav>
+
+      <div class="body-wrap">
+        <article id="post-多个线程监听同一个fd" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+      <input type="hidden" class="isFancy" />
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      多个线程监听同一个fd
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h2 id="多个线程监听同一个fd"><a href="#多个线程监听同一个fd" class="headerlink" title="多个线程监听同一个fd"></a>多个线程监听同一个fd</h2><h3 id="测试环境"><a href="#测试环境" class="headerlink" title="测试环境"></a>测试环境</h3><p>ubantu 12.04 x64</p>
+<h3 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h3><p>多个线程监听同一fd,看看是否会出现问题，连接到来时，是否每个线程都会被唤醒，<br>还是只唤醒一个，每个线程被唤醒的次数是否会相等。<br><a id="more"></a></p>
+<h3 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div></pre></td><td class="code"><pre><div class="line">// server.c</div><div class="line"><span class="comment">#include &lt;sys/time.h&gt;</span></div><div class="line"><span class="comment">#include &lt;stdlib.h&gt;</span></div><div class="line"><span class="comment">#include &lt;stdio.h&gt;</span></div><div class="line"><span class="comment">#include &lt;string.h&gt;</span></div><div class="line"><span class="comment">#include &lt;unistd.h&gt;</span></div><div class="line"><span class="comment">#include &lt;sys/types.h&gt;</span></div><div class="line"><span class="comment">#include &lt;sys/socket.h&gt;</span></div><div class="line"><span class="comment">#include &lt;netinet/in.h&gt;</span></div><div class="line"><span class="comment">#include &lt;arpa/inet.h&gt;</span></div><div class="line"></div><div class="line"><span class="comment">#define PORT 4321</span></div><div class="line"><span class="comment">#define BACKLOG 100</span></div><div class="line"><span class="comment">#define MAXRECVLEN 1024</span></div><div class="line">pthread_t tid[10];</div><div class="line">long cnt[10];</div><div class="line"></div><div class="line">void accept_thread_entrance( void* arg );</div><div class="line"></div><div class="line">int main(int argc, char *argv[])</div><div class="line">&#123;</div><div class="line">    char buf[MAXRECVLEN];</div><div class="line">    int listenfd, connectfd;  /* socket descriptors */</div><div class="line">    struct sockaddr_in server; /* server<span class="string">'s address information */</span></div><div class="line">    struct sockaddr_in client; /* client's address information */</div><div class="line">    socklen_t addrlen;</div><div class="line">    /* Create TCP socket */</div><div class="line">    <span class="keyword">if</span> ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)</div><div class="line">    &#123;</div><div class="line">        /* handle exception */</div><div class="line">        perror(<span class="string">"socket() error. Failed to initiate a socket"</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line"> </div><div class="line">    int opt = SO_REUSEADDR;</div><div class="line">    setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &amp;opt, sizeof(opt));</div><div class="line">    server.sin_family = AF_INET;</div><div class="line">    server.sin_port = htons(PORT);</div><div class="line">    server.sin_addr.s_addr = htonl(INADDR_ANY);</div><div class="line">    <span class="keyword">if</span>(<span class="built_in">bind</span>(listenfd, (struct sockaddr *)&amp;server, sizeof(server)) == -1)</div><div class="line">    &#123;</div><div class="line">        perror(<span class="string">"Bind() error."</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">if</span>(listen(listenfd, BACKLOG) == -1)</div><div class="line">    &#123;</div><div class="line">        perror(<span class="string">"listen() error. \n"</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">        int i = 0;</div><div class="line">	int result;</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (i=0; i&lt;5; i++)</div><div class="line">    &#123;</div><div class="line">	cnt[i] = 0;</div><div class="line">	</div><div class="line">				<span class="keyword">if</span> ((result=pthread_create(&amp;tid[i], NULL, \</div><div class="line">					accept_thread, \</div><div class="line">					(void *)(long)listenfd)) != 0)</div><div class="line">				&#123;</div><div class="line">                                        puts(<span class="string">"pthread_create error"</span>);</div><div class="line">					<span class="built_in">break</span>;</div><div class="line">				&#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">  </div><div class="line">    <span class="built_in">printf</span>( <span class="string">"%lu, %lu, %lu, %lu, %lu \n"</span>, tid[0], tid[1], tid[2], tid[3], tid[4] ); //这里的输出与子线程的pthread_self返回值并不一样</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(1);</div><div class="line"></div><div class="line">    <span class="built_in">return</span> 0;</div><div class="line">&#125;</div><div class="line"></div><div class="line">pthread_mutex_t mutex;</div><div class="line">pthread_t childTid[10];</div><div class="line">int idx = 0;</div><div class="line"></div><div class="line">void accept_thread( void* arg )</div><div class="line">&#123;</div><div class="line">	int listenfd = (long)arg;</div><div class="line">	int connectfd;</div><div class="line">	struct sockaddr_in client;</div><div class="line">        socklen_t addrlen;</div><div class="line">	addrlen = sizeof(client);</div><div class="line">    pthread_mutex_lock(&amp;mutex);</div><div class="line">    childTid[idx++] = pthread_self();</div><div class="line">    pthread_mutex_unlock(&amp;mutex);</div><div class="line"></div><div class="line">    <span class="keyword">while</span>(1)</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">if</span>((connectfd=accept(listenfd,(struct sockaddr *)&amp;client, &amp;addrlen))==-1)</div><div class="line">          &#123;</div><div class="line">            perror(<span class="string">"accept() error. \n"</span>);</div><div class="line">            <span class="built_in">exit</span>(1);</div><div class="line">          &#125;</div><div class="line"></div><div class="line">        struct timeval tv;</div><div class="line">        gettimeofday(&amp;tv, NULL);</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"pthread-id=%lu,You got a connection from client's ip %s, port %d at time %ld.%ld\n"</span>,pthread_self(), inet_ntoa(client.sin_addr),htons(client.sin_port), tv.tv_sec,tv.tv_usec);</div><div class="line">	int i = 0;</div><div class="line">  	pthread_mutex_lock(&amp;mutex);</div><div class="line">        <span class="keyword">for</span>( i = 0; i &lt; 5; i++ )</div><div class="line">	&#123;</div><div class="line">		<span class="keyword">if</span>( pthread_self() == childTid[i] )</div><div class="line">		&#123;</div><div class="line">			cnt[i]++;</div><div class="line">			<span class="built_in">break</span>;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="built_in">printf</span>( <span class="string">"%ld, %ld, %ld, %ld, %ld \n"</span>, cnt[0], cnt[1], cnt[2], cnt[3], cnt[4] );</div><div class="line">        pthread_mutex_unlock(&amp;mutex);</div><div class="line">        close(connectfd);</div><div class="line">    &#125;</div><div class="line">	<span class="built_in">return</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line">// client.c:</div><div class="line"><span class="comment">#include &lt;stdlib.h&gt;</span></div><div class="line"><span class="comment">#include &lt;stdio.h&gt;</span></div><div class="line"><span class="comment">#include &lt;unistd.h&gt;</span></div><div class="line"><span class="comment">#include &lt;string.h&gt;</span></div><div class="line"><span class="comment">#include &lt;sys/types.h&gt;</span></div><div class="line"><span class="comment">#include &lt;sys/socket.h&gt;</span></div><div class="line"><span class="comment">#include &lt;netinet/in.h&gt;</span></div><div class="line"><span class="comment">#include &lt;netdb.h&gt;  /* netdb is necessary for struct hostent */</span></div><div class="line"><span class="comment">#define PORT 4321  /* server port */</span></div><div class="line"><span class="comment">#define MAXDATASIZE 100</span></div><div class="line"></div><div class="line">int main(int argc, char *argv[])</div><div class="line">&#123;</div><div class="line">    int sockfd, num;    /* files descriptors */</div><div class="line">    char buf[MAXDATASIZE];    /* buf will store received text */</div><div class="line">    struct hostent *he;    /* structure that will get information about remote host */</div><div class="line">    struct sockaddr_in server;</div><div class="line">    <span class="keyword">if</span> (argc != 2)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"Usage: %s &lt;IP Address&gt;\n"</span>,argv[0]);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">if</span>((he=gethostbyname(argv[1]))==NULL)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"gethostbyname() error\n"</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">    </div><div class="line">    <span class="keyword">if</span>((sockfd=socket(AF_INET,SOCK_STREAM, 0))==-1)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"socket() error\n"</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">    bzero(&amp;server,sizeof(server));</div><div class="line">    server.sin_family = AF_INET;</div><div class="line">    server.sin_port = htons(PORT);</div><div class="line">    server.sin_addr = *((struct in_addr *)he-&gt;h_addr);</div><div class="line">    <span class="keyword">if</span>(connect(sockfd, (struct sockaddr *)&amp;server, sizeof(server))==-1)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"connect() error\n"</span>);</div><div class="line">        <span class="built_in">exit</span>(1);</div><div class="line">    &#125;</div><div class="line">    close(sockfd);</div><div class="line">    <span class="built_in">return</span> 0;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">//test.c:</div><div class="line"><span class="comment">#include &lt;stdio.h&gt;</span></div><div class="line">int <span class="function"><span class="title">main</span></span>()</div><div class="line">&#123;</div><div class="line">	int ret = 0;</div><div class="line">	long long cnt = 0;</div><div class="line">	<span class="keyword">while</span>(1)</div><div class="line">	&#123;</div><div class="line">		system(<span class="string">"./client 127.0.0.1"</span>);</div><div class="line">		cnt++;	</div><div class="line"></div><div class="line">		<span class="keyword">if</span>( 10000 == cnt )</div><div class="line">		&#123;</div><div class="line">			<span class="built_in">break</span>;</div><div class="line">		&#125;	</div><div class="line">	&#125;</div><div class="line">	<span class="built_in">return</span> ret;</div><div class="line">&#125;</div><div class="line">//运行结果：</div><div class="line">./<span class="built_in">test</span></div><div class="line">./<span class="built_in">test</span></div><div class="line">pthread-id=870520576,You got a connection from client<span class="string">'s ip 127.0.0.1, port 36335 at time 1480235067.980892</span></div><div class="line">3995, 4007, 4006, 3995, 3997</div></pre></td></tr></table></figure>
+<h3 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h3><p>只会唤醒一个线程，且每个线程被唤醒的次数基本相等，多个线程监听同一个fd基本没问题</p>
+
+      
+    </div>
+    <div class="article-info article-info-index">
+      
+      <a href="/2016/11/28/多个线程监听同一个fd/" class="archive-article-date">
+  	<time datetime="2016-11-27T16:23:59.000Z" itemprop="datePublished"><i class="icon-clock"></i>2016-11-27</time>
+</a>
+      
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags"></i>
+		<ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/multi-pthread/">multi pthread</a></li></ul>
+	</div>
+
+      
+
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</article>
+
+  
+<nav id="article-nav">
+  
+    <a href="/2016/12/04/fastdfs连接池/" id="article-nav-newer" class="article-nav-link-wrap">
+      <i class="icon-circle-left"></i>
+      <div class="article-nav-title">
+        
+          fastdfs连接池
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2016/11/07/fastdfs配置文件解析模块/" id="article-nav-older" class="article-nav-link-wrap">
+      <div class="article-nav-title">fastdfs配置文件解析模块</div>
+      <i class="icon-circle-right"></i>
+    </a>
+  
+</nav>
+
+
+
+
+
+
+
+
+<div class="duoshuo">
+	<!-- 多说评论框 start -->
+	<div class="ds-thread" data-thread-key="多个线程监听同一个fd" data-title="多个线程监听同一个fd" data-url="http://damotiansheng.github.io/2016/11/28/多个线程监听同一个fd/"></div>
+	<!-- 多说评论框 end -->
+	<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+	<script type="text/javascript">
+	var duoshuoQuery = {short_name:"dmts"};
+	(function() {
+		var ds = document.createElement('script');
+		ds.type = 'text/javascript';ds.async = true;
+		ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+		ds.charset = 'UTF-8';
+		(document.getElementsByTagName('head')[0] 
+		 || document.getElementsByTagName('body')[0]).appendChild(ds);
+	})();
+	</script>
+	<!-- 多说公共JS代码 end -->
+</div>
+
+
+
+
+
+
+
+
+
+      </div>
+      <footer id="footer">
+<script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+  <div class="outer">
+    <div id="footer-info">
+    	<div class="footer-left">
+    		&copy; 2016 damotiansheng
+    	</div>
+      	<div class="footer-right">
+      		<a href="http://hexo.io/" target="_blank">Hexo</a>  Theme <a href="https://github.com/damotiansheng/theme-yilia.git" target="_blank">theme-yilia</a> by damotiansheng
+      	</div>
+    </div>
+  </div>
+<span id="busuanzi_container_site_uv">
+  本站访客数<span id="busuanzi_value_site_uv"></span>人次
+</span>
+</footer>
+
+    </div>
+    <script>
+	var yiliaConfig = {
+		fancybox: true,
+		mathjax: true,
+		animate: true,
+		isHome: false,
+		isPost: true,
+		isArchive: false,
+		isTag: false,
+		isCategory: false,
+		open_in_new: true,
+		root: "/",
+		innerArchive: true
+	}
+</script>
+
+<script src="/./main.js"></script>
+
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+    tex2jax: {
+        inlineMath: [ ['$','$'], ["\\(","\\)"]  ],
+        processEscapes: true,
+        skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+    }
+});
+
+MathJax.Hub.Queue(function() {
+    var all = MathJax.Hub.getAllJax(), i;
+    for(i=0; i < all.length; i += 1) {
+        all[i].SourceElement().parentNode.className += ' has-jax';                 
+    }       
+});
+</script>
+
+<script src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+
+    
+<div class="tools-col">
+  <ul class="btn-wrap">
+    
+      <li class="chose" data-hook="tools-section-all"><span class="text">全部</span><i class="icon-book"></i></li>
+    
+    
+      <li data-hook="tools-section-tag"><span class="text">标签</span><i class="icon-price-tags"></i></li>
+    
+    
+      <li data-hook="tools-section-friends"><span class="text">友链</span><i class="icon-link"></i></li>
+    
+    
+      <li data-hook="tools-section-me"><span class="text">我</span><i class="icon-smile"></i></li>
+    
+  </ul>
+  <div class="tools-wrap">
+    
+    	<section class="tools-section tools-section-all chose">
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-tag">
+    			<div class="widget tagcloud" id="js-tagcloud">
+    				<a href="/tags/epoll/" style="font-size: 10px;">epoll</a> <a href="/tags/fastdfs/" style="font-size: 20px;">fastdfs</a> <a href="/tags/github/" style="font-size: 10px;">github</a> <a href="/tags/hexo/" style="font-size: 10px;">hexo</a> <a href="/tags/multi-pthread/" style="font-size: 10px;">multi pthread</a> <a href="/tags/分布式文件系统/" style="font-size: 10px;">分布式文件系统</a> <a href="/tags/搭建github博客/" style="font-size: 10px;">搭建github博客</a> <a href="/tags/超时事件/" style="font-size: 10px;">超时事件</a> <a href="/tags/连接池/" style="font-size: 10px;">连接池</a>
+    			</div>
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-friends">
+  		
+  			<div class="friends-wrap" id="js-friends">
+  			
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://blog.csdn.net/damotiansheng">我的csdn博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.google.com.hk">谷歌</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.baidu.com">百度</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="https://www.zybuluo.com/mdeditor">Markdown编辑阅读器1</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://www.appinn.com/markdown/">Markdown语法说明</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://baixin.io/">潘柏信博客</a>
+  	        
+  	          <a target="_blank" class="main-nav-link switch-friends-link" href="http://litten.github.io">Litten博客</a>
+  	        
+  	        </div>
+  		
+    	</section>
+    
+
+    
+    	<section class="tools-section tools-section-me">
+  	  	
+  	  		<div class="aboutme-wrap" id="js-aboutme">2016年10月13日&lt;br&gt;&lt;br&gt;一名计算机蜗牛，努力前进，自强不息&lt;br&gt;</div>
+  	  	
+    	</section>
+    
+  </div>
+  
+</div>
+    <!-- Root element of PhotoSwipe. Must have class pswp. -->
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    <!-- Background of PhotoSwipe. 
+         It's a separate element as animating opacity is faster than rgba(). -->
+    <div class="pswp__bg"></div>
+
+    <!-- Slides wrapper with overflow:hidden. -->
+    <div class="pswp__scroll-wrap">
+
+        <!-- Container that holds slides. 
+            PhotoSwipe keeps only 3 of them in the DOM to save memory.
+            Don't modify these 3 pswp__item elements, data is added later on. -->
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        <!-- Default (PhotoSwipeUI_Default) interface on top of sliding area. Can be changed. -->
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                <!--  Controls are self-explanatory. Order can be changed. -->
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" style="display:none" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                <!-- Preloader demo http://codepen.io/dimsemenov/pen/yyBWoR -->
+                <!-- element will get class pswp__preloader--active when preloader is running -->
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                      <div class="pswp__preloader__cut">
+                        <div class="pswp__preloader__donut"></div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div> 
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+  </div>
+</body>
+</html>
