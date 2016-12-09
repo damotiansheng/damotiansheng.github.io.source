@@ -6,6 +6,7 @@ tags: [hexo,travis]
 [参考文章1](http://blog.csdn.net/xuezhisdc/article/details/53130423)
 [参考文章2](https://formulahendry.github.io/2016/12/04/hexo-ci/#)
 使用hexo+github搭建完自己的博客之后，每次新增文章，都需要hexo g->hexo d进行发布，此外为了进行备份，也需要将博客目录push到source repo上去(这里就有两个repo：source repo和content repo,我们的github博客网站的真实数据就保存在content repo,而source repo为我们本地博客目录的备份repo),有没有一种解决方案实现push到source repo上去时，自动进行发布呢？答案肯定是yes，这就是hexo的持续集成,实现工具有很多，如：appveyor(针对windows，linux下尝试未成功)，travis等，这里我们使用travis。
+<!--more-->
 
 ## 目的
 >* 一次性实现备份和发布；
