@@ -3,20 +3,21 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: damotiansheng的博客
-subtitle: 个人站
-description: 开始我的github博客之旅(2016-10-13)
-author: damotiansheng
-email: 974361900@qq.com
-language: Chinese
-timezone: UTC
-keywords: c++、后台
+title: Marvin的博客
+subtitle: TO BE YOUR SELF
+description: 记录所思、所想、所做的小站点
+author: Marvin
+email: marvin@qq.com
+language: Chinese、English
+#timezone: UTC
+keywords: IT、C++、后台、程序猿
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
 url: http://damotiansheng.github.io
 root: /
-permalink: :year/:month/:day/:title/
+#permalink: :year/:month/:day/:title/
+permalink: :category/:year-:month-:day/:title.html
 permalink_defaults:
 
 # Directory
@@ -43,12 +44,18 @@ highlight:
   enable: true
   line_number: true
   auto_detect: true
-  tab_replace:
+  tab_replace: ''
 
 # Category & Tag
 default_category: uncategorized
 category_map:
+    编程: programming
+    生活: life
+    工具: tools
+    其他: other
+    
 tag_map:
+
 
 # Date / Time format
 ## Hexo uses Moment.js to parse and display date
