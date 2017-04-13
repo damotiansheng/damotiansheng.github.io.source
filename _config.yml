@@ -47,9 +47,10 @@ highlight:
   tab_replace: ''
 
 # Category & Tag
-default_category: uncategorized
+default_category: 
 category_map:
     编程: programming
+    工作: work
     生活: life
     工具: tools
     其他: other

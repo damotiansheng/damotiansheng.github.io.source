@@ -1,6 +1,6 @@
 ---
 title: hexo之使用Travis自动部署hexo
-categories: hexo
+categories: 工具
 tags: [hexo,travis]
 ---
 [参考文章1](http://blog.csdn.net/xuezhisdc/article/details/53130423)

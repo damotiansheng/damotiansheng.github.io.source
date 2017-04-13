@@ -1,10 +1,12 @@
 # Header
 
 menu:
-  主页: /
+  首页: /
+  归档: /archives 
 #  随笔: /tags/随笔
-  分类: /categories
-  相册: /photos/damotiansheng.png
+#  分类: /categories
+  分类: /tags
+  相册: /photos
   
 # SubNav
 subnav:
@@ -70,12 +72,10 @@ smart_menu:
   friends: '友链'
   aboutme: '关于我'
 
+tagcloud: true
+
 friends:
-  我的csdn博客: http://blog.csdn.net/damotiansheng
-  谷歌: https://www.google.com.hk
-  百度: https://www.baidu.com
-  Markdown编辑阅读器1: https://www.zybuluo.com/mdeditor
-  Markdown语法说明: http://www.appinn.com/markdown/
+  csdn博客: http://blog.csdn.net/damotiansheng
   潘柏信博客: http://baixin.io/
   Litten博客: http://litten.github.io
 
