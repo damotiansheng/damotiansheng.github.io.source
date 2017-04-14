@@ -88,6 +88,7 @@ smart_menu:
   friends: '友链'
   aboutme: '关于我'
 
+tagcloud: true
 
 friends:
   csdn博客: http://blog.csdn.net/damotiansheng
