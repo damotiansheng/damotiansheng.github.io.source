@@ -4,17 +4,17 @@ menu:
   首页: /
   归档: /archives 
 #  随笔: /tags/随笔
-#  分类: /categories
-  分类: /tags
-  相册: /photos
+  分类: /categories
+#  分类: /tags
+  相册: /photos/
   
 # SubNav
 subnav:
   github: "https://github.com/damotiansheng"
  #weibo: "http://weibo.com/u/1877550080"
-  weibo: "#"
+  weibo: "http://weibo.com/"
   #rss: "#"
-  zhihu: "#"
+  zhihu: "https://www.zhihu.com/"
   douban: "https://www.douban.com/people/wwwzqbxcom/"
   mail: "#"
   #facebook: "#"
@@ -72,11 +72,14 @@ smart_menu:
   friends: '友链'
   aboutme: '关于我'
 
-tagcloud: true
 
 friends:
   csdn博客: http://blog.csdn.net/damotiansheng
+  博客园: http://www.cnblogs.com/groudding/
+  Evernote: https://www.yinxiang.com/
+  Leanote: https://www.leanote.com/
+  码云: https://git.oschina.net/
   潘柏信博客: http://baixin.io/
   Litten博客: http://litten.github.io
 
-aboutme: 2016年10月13日<br><br>一名计算机蜗牛，努力前进，自强不息<br>
+aboutme: 2016年10月13日<br><br>Little By Little,Step By Step<br>
