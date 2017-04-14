@@ -91,15 +91,15 @@ deploy:
   branch: master
 
 
-sitemap:
-    path: sitemap.xml
-baidusitemap:
-    path: baidusitemap.xm
+#sitemap:
+#    path: sitemap.xml
+#baidusitemap:
+#    path: baidusitemap.xm
 
-feed:
-    type: atom
-    path: atom.xml
-    limit: 100
+#feed:
+#    type: atom
+#    path: atom.xml
+#    limit: 100
 
 jsonContent:
   meta: false
