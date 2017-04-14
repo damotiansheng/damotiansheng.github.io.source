@@ -47,7 +47,7 @@ highlight:
   tab_replace: ''
 
 # Category & Tag
-default_category: 
+default_category: uncategorized
 category_map:
     编程: programming
     工作: work

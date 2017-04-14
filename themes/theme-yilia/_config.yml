@@ -5,6 +5,8 @@ menu:
   归档: /archives 
 #  随笔: /tags/随笔
   分类: /categories
+  工具: /categories/tools/
+  生活: /categories/life/
 #  分类: /tags
   相册: /photos/
   
@@ -32,6 +34,7 @@ root:
 
 # Content
 excerpt_link: 阅读全文
+show_all_link: '展开全文'
 fancybox: true
 mathjax: true
 
@@ -61,6 +64,19 @@ baidu_tongji: false
 #duoshuo: false
 duoshuo: dmts
 
+# 样式定制 - 一般不需要修改，除非有很强的定制欲望…
+style:
+  # 头像上面的背景颜色
+  header: '#4d4d4d'
+  # 右滑板块背景
+  slider: 'linear-gradient(200deg,#a0cfe4,#e8c37e)'
+
+# slider的设置
+slider:
+  # 是否默认展开tags板块
+  showTags: false
+
+
 # 如不需要，将该项置为false
 # 比如
 #smart_menu:
@@ -82,4 +98,4 @@ friends:
   潘柏信博客: http://baixin.io/
   Litten博客: http://litten.github.io
 
-aboutme: 2016年10月13日<br><br>Little By Little,Step By Step<br>
+aboutme: 2016年10月13日<br><br>Marvin, Little By Little,Step By Step<br>
