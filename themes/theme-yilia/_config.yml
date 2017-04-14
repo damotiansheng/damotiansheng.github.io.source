@@ -8,7 +8,7 @@ menu:
   工具: /categories/tools/
   生活: /categories/life/
 #  分类: /tags
-  相册: /photos/
+  相册: /photos/damotiansheng.png
   
 # SubNav
 subnav:
@@ -18,7 +18,7 @@ subnav:
   #rss: "#"
   zhihu: "https://www.zhihu.com/"
   douban: "https://www.douban.com/people/wwwzqbxcom/"
-  mail: "#"
+  mail: "https://en.mail.qq.com/cgi-bin/loginpage"
   #facebook: "#"
   #google: "#"
   #twitter: "#"
@@ -52,8 +52,8 @@ favicon: /favicon.png
 avatar: /photos/damotiansheng.png
 
 #是否开启分享
-share_jia: false
-share_addthis: false
+share_jia: true
+share_addthis: true
 #share_addthis: true
 
 #是否开启网页统计
