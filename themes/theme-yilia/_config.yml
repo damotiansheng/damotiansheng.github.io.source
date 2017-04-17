@@ -8,7 +8,8 @@ menu:
   工具: /categories/tools/
   生活: /categories/life/
 #  分类: /tags
-  相册: /photos/damotiansheng.png
+#  相册: /photos/damotiansheng.png
+  相册: /photos/L.jpg
   
 # SubNav
 subnav:
@@ -23,9 +24,9 @@ subnav:
   #google: "#"
   #twitter: "#"
   #linkedin: "#"
-
+  rss: "#"
+  
 rss: /atom.xml
-
 categories: /categories
 # 是否需要修改 root 路径
 # 如果您的网站存放在子目录中，例如 http://yoursite.com/blog，
@@ -43,6 +44,20 @@ animate: true
 
 # 是否在新窗口打开链接
 open_in_new: true
+
+
+# 打赏
+# 请在需要打赏的文章的md文件头部，设置属性reward: true
+
+# 打赏基础设定：0-关闭打赏； 1-文章对应的md文件里有reward:true属性，才有打赏； 2-所有文章均有打赏
+reward_type: 2
+# 打赏wording
+reward_wording: '谢谢你请我吃糖果'
+# 支付宝二维码图片地址，跟你设置头像的方式一样。比如：/assets/img/alipay.jpg
+alipay: /assets/img/alipay.jpg
+# 微信二维码图片地址
+weixin: /assets/img/weixin.jpg
+
 
 # Miscellaneous
 google_analytics: ''
@@ -99,4 +114,4 @@ friends:
   潘柏信博客: http://baixin.io/
   Litten博客: http://litten.github.io
 
-aboutme: 2016年10月13日<br><br>Marvin, Little By Little,Step By Step<br>
+aboutme: Marvin, Little By Little,Step By Step from October 13, 2016<br>
