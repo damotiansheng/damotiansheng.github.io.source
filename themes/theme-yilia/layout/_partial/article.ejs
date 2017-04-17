@@ -3,6 +3,21 @@
     <% if (post.link || post.title){ %>
       <header class="article-header">
         <%- partial('post/title', {class_name: 'article-title'}) %>
+<!-- 显示阅读和评论数 -->
+<% if (!index && post.comments && config.wangYi){ %>
+<br/>
+<a class="cloud-tie-join-count" href="javascript:void(0);" style="color:gray;font-size:14px;">
+<span class="icon-sort"></span>
+<span id="busuanzi_container_page_pv" style="color:#ef7522;font-size:14px;">
+          阅读数: <span id="busuanzi_value_page_pv"></span>次 &nbsp;&nbsp;
+</span>
+</a>
+<a class="cloud-tie-join-count" href="javascript:void(0);" style="color:#ef7522;font-size:14px;">
+	<span class="icon-comment"></span>
+	<span class="join-text" style="color:#ef7522;font-size:14px;">评论数:</span>
+	<span class="join-count">0</span>次
+</a>
+<% } %>
         <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
       </header>
     <% } %>
@@ -79,28 +94,19 @@
 <%- partial('post/share_addthis') %>
 <% } %>
 
-<% if (!index && theme.duoshuo && post.comments){ %>
-<%- partial('post/duoshuo', {
-    key: post.slug,
-    title: post.title,
-    url: config.url+url_for(post.path)
-  }) %>
-<% } %>
-
-<% if (!index && post.comments && config.disqus_shortname){ %>
-<section id="comments">
-  <div id="disqus_thread"></div>
-    <script type="text/javascript">
-    /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
-    var disqus_shortname = '<%=config.disqus_shortname%>'; // required: replace example with your forum shortname
-
-    /* * * DON'T EDIT BELOW THIS LINE * * */
-    (function() {
-      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
-      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
-  </script>
-  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<!-- 网易云跟帖 -->
+<% if (!index && post.comments && config.wangYi){ %>
+<section class="duoshuo" id="comments">
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script>
+  var cloudTieConfig = {
+    url: "", 
+    sourceId: "<%= post.path%>",
+    productKey: "<%= config.wangYi%>",
+    target: "cloud-tie-wrapper"
+  };
+</script>
+<script src="https://img1.cache.netease.com/f2e/tie/yun/sdk/loader.js"></script>
 </section>
 <% } %>
+
