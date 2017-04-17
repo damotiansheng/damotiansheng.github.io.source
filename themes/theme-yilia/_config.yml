@@ -32,7 +32,7 @@ categories: /categories
 # 请将您的 url 设为 http://yoursite.com/blog 并把 root 设为 /blog/。
 root: 
 
-wangYi: 666075e0dbb74e36992d7dd529132a90
+
 # Content
 excerpt_link: 阅读全文
 show_all_link: '展开全文'
@@ -77,7 +77,8 @@ baidu_tongji: false
 #是否开启多说评论，填写你在多说申请的项目名称 duoshuo: duoshuo-key
 #若使用disqus，请在博客config文件中填写disqus_shortname，并关闭多说评论
 #duoshuo: false
-duoshuo: dmts
+#duoshuo: dmts
+duoshuo: marvin
 
 # 样式定制 - 一般不需要修改，除非有很强的定制欲望…
 style:
@@ -114,4 +115,7 @@ friends:
   潘柏信博客: http://baixin.io/
   Litten博客: http://litten.github.io
 
-aboutme: Marvin, Little By Little,Step By Step from October 13, 2016<br>
+aboutme: Marvin, Little By Little,Step By Step from October 13, 2016
+
+wangYi: 666075e0dbb74e36992d7dd529132a90
+
