@@ -27,7 +27,9 @@
         <% if (theme.excerpt_link) { %>
           <a class="article-more-a" href="<%- url_for(post.path) %>#more"><%= theme.excerpt_link %> >></a>
         <% } %>
-      <% } else { %>
+      <% } else { if (post.toc !== false){ %>
+                <%- partial('post/toc') %>
+                <% } %>
         <%- post.content %>
       <% } %>
 
