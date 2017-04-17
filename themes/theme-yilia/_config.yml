@@ -9,7 +9,7 @@ menu:
   生活: /categories/life/
 #  分类: /tags
 #  相册: /photos/damotiansheng.png
-  相册: /photos/L.jpg
+  相册: /photos/
   
 # SubNav
 subnav:
@@ -64,7 +64,8 @@ google_analytics: ''
 favicon: /favicon.png
 
 #你的头像url
-avatar: /photos/damotiansheng.png
+#avatar: /photos/damotiansheng.png
+avatar: /photos/L.jpg
 
 #是否开启分享
 share_jia: true
