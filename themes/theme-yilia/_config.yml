@@ -64,8 +64,8 @@ google_analytics: ''
 favicon: /favicon.png
 
 #你的头像url
-#avatar: /photos/damotiansheng.png
-avatar: /photos/L.jpg
+avatar: /photos/damotiansheng.png
+#avatar: /photos/L.jpg
 
 #是否开启分享
 share_jia: true

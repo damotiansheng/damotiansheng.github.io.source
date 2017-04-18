@@ -21,9 +21,6 @@
 <% } %>
         <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
 
-	<%- partial('post/tag') %>
-        <%- partial('post/category') %>
-
       </header>
     <% } %>
     <div class="article-entry" itemprop="articleBody">
@@ -105,6 +102,10 @@
           <a>置顶</a>
         </div>
       <% } %>
+
+	<%- partial('post/tag') %>
+        <%- partial('post/category') %>
+
       <% if (index && theme.show_all_link){ %>
         <p class="article-more-link">
           <a class="article-more-a" href="<%- url_for(post.path) %>"><%= theme.show_all_link %> >></a>
