@@ -3,6 +3,8 @@
     <% if (post.link || post.title){ %>
       <header class="article-header">
         <%- partial('post/title', {class_name: 'article-title'}) %>
+	<%- partial('post/tag') %>
+        <%- partial('post/category') %>
 <!-- 显示阅读和评论数 -->
 <% if (!index && post.comments && config.wangYi){ %>
 <br/>
@@ -94,14 +96,14 @@
       <% } %>
     </div>
     <div class="article-info article-info-index">
-      <%if(post.top){%>
+  <!--    <%if(post.top){%> -->
+      <%if(theme.top){%>
         <div class="article-pop-out tagcloud">
           <i class="icon-tuding"></i>
           <a>置顶</a>
         </div>
       <% } %>
-      <%- partial('post/tag') %>
-      <%- partial('post/category') %>
+      
       <% if (index && theme.show_all_link){ %>
         <p class="article-more-link">
           <a class="article-more-a" href="<%- url_for(post.path) %>"><%= theme.show_all_link %> >></a>

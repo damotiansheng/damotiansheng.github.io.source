@@ -72,6 +72,9 @@ share_jia: true
 share_addthis: false
 #share_addthis: true
 
+#是否开启置顶
+top: true
+
 #是否开启网页统计
 baidu_tongji: false
 
