@@ -3,8 +3,7 @@
     <% if (post.link || post.title){ %>
       <header class="article-header">
         <%- partial('post/title', {class_name: 'article-title'}) %>
-	<%- partial('post/tag') %>
-        <%- partial('post/category') %>
+	
 <!-- 显示阅读和评论数 -->
 <% if (!index && post.comments && config.wangYi){ %>
 <br/>
@@ -21,6 +20,10 @@
 </a>
 <% } %>
         <%- partial('post/date', {class_name: 'archive-article-date', date_format: null}) %>
+
+	<%- partial('post/tag') %>
+        <%- partial('post/category') %>
+
       </header>
     <% } %>
     <div class="article-entry" itemprop="articleBody">
@@ -96,7 +99,7 @@
       <% } %>
     </div>
     <div class="article-info article-info-index">
-      <%if(theme.top){%>
+      <%if(post.top){%>
         <div class="article-pop-out tagcloud">
           <i class="icon-tuding"></i>
           <a>置顶</a>
