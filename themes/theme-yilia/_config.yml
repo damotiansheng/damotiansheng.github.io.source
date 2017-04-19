@@ -87,7 +87,7 @@ duoshuo: marvin
 # 样式定制 - 一般不需要修改，除非有很强的定制欲望…
 style:
   # 头像上面的背景颜色
-  header: '#4d4d4d'
+  header: '#4d4d00'
   # 右滑板块背景
   slider: 'linear-gradient(200deg,#a0cfe4,#e8c37e)'
 
@@ -104,7 +104,7 @@ slider:
 
 smart_menu:
   innerArchive: '所有文章'
-  tagcloud: '标签'
+#  tagcloud: '标签'
   friends: '友链'
   aboutme: '关于我'
 
