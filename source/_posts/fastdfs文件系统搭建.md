@@ -1,7 +1,7 @@
 ---
 title: fastdfs文件系统搭建
 date: 2016-10-21 16:54:20
-tags: [fastdfs,分布式文件系统]
+tags: [fastdfs,分布式文件系统,nginx]
 ---
 
 ## ubantu14.04 x64下搭建FastDFS分布式存储环境（使用Nginx模块）
