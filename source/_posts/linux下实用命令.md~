@@ -15,7 +15,7 @@ sed 's/^[ 0-9]* / /' globalfifo.c > globalfifo1.c
 注意一条命令中不能有既作为输入，又作为输出，否则会导致文件为空；如sed 's/^[ 0-9]* / /' globalfifo.c > globalfifo.c，导致文件globalfifo.c为空
 去除数字以空字符代替：sed 's/^[ 0-9]* //' globalfifo.c > globalfifo1.c
 
-## 4. chown username:uername file; chmod -R 666 dir; cp -r srcdir destdir; 
+## 4. chown huyanping:huyanping file; chmod -R 666 dir; cp -r srcdir destdir; 
 
 ## 5. 强制清空回收站：sudo rm -fr $HOME/.local/share/Trash/files/*
 
